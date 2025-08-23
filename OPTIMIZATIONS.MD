@@ -1,12 +1,6 @@
 ## Optimizations made (current session)
 
-### 1) Metrics: fix mem_max scaling (accurate MB)
-- **File**: `test/_metrics.ts`
-- **Change**: Detect whether `process.resourceUsage().maxRSS` is reported in bytes or KiB and convert to MB accordingly.
-- **Reason**: Previous metric showed unrealistic values (hundreds of GB) due to unit mismatch, masking real memory usage and hiding improvements.
-- **Effect**: `raw-parser.mem_max_mb` now reports realistic values (~98 MB on local runs), enabling meaningful comparisons.
-
-### 2) Raw parser: reduce allocations in `TxParser`
+### 1) Raw parser: reduce allocations in `TxParser`
 - **File**: `src/infrastructure/bitcoin/raw/TxParser.ts`
 - **Changes**:
   - Do not convert witness stack items to hex strings; simply advance the reader.
@@ -15,19 +9,19 @@
 - **Reason**: Hex conversions and retained strings significantly increase short‑lived allocations and peak RSS without providing value to the app.
 - **Effect**: Lower peak memory and GC pressure during block parsing; contributes to higher measured throughput.
 
-### 3) `toHexLE` without buffer copy/reverse
+### 2) `toHexLE` without buffer copy/reverse
 - **File**: `src/infrastructure/bitcoin/raw/ByteReader.ts`
 - **Change**: Replaced `Buffer.from(buffer).reverse().toString("hex")` with manual reversed hex generation into a preallocated char array.
 - **Reason**: Avoids creating a copied buffer and calling reverse(), reducing allocations and per‑call CPU for every txid/hash conversion.
 - **Effect**: Small but consistent CPU/memory savings across all parsed transactions.
 
-### 4) Cache watched address structures in transaction matching
+### 3) Cache watched address structures in transaction matching
 - **File**: `src/application/services/BitcoinService.ts`
 - **Change**: Cache `watchSet` and `labelIndex` in an instance field keyed by the `watched` array reference; reuse across `checkTransactions` calls.
 - **Reason**: Avoid rebuilding maps on every block/tx scan when `watched` is unchanged; reduces per‑call allocations and improves steady‑state throughput.
 - **Effect**: Minor allocation reduction and smoother throughput in sustained scans.
 
-### 5) Lodash trial and decision
+### 4) Lodash trial and decision
 - **Files**: multiple (`BitcoinService`, `config`, `currency`, `raw/TxParser`)
 - **Change**: Added `lodash-es` and experimented with replacing native loops/maps with `groupBy`, `map`, `filter`, `find`, and `sumBy` in hot paths.
 - **Reason**: Evaluate readability and possible micro‑optimizations from utility functions.
