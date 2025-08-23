@@ -1,0 +1,72 @@
+---
+description: General solution architecture
+alwaysApply: false
+---
+# Architecture
+
+## Tech stack
+
+- Bun runtime (>=1.1) \ TypeScript (ESNext)
+- Docker (containerized runtime)
+
+## Folder structure (clean architecture)
+
+- `src/domain` – Pure domain models and ports
+  - `blockchain.ts` – `BlockchainService` interface, domain types
+- `src/application` – Use cases and service implementations that orchestrate infrastructure
+  - `services/BitcoinService.ts` – Implements `BlockchainService` on top of RPC client
+- `src/infrastructure` – Adapters and external integrations
+  - `bitcoin/BitcoinRpcClient.ts` – JSON-RPC adapter for Bitcoin Core/compatible nodes
+  - `logger/Logger.ts` – Pino-based structured logger (JSON stdout)
+- `src/config` – Configuration loading (env-based)
+  - `index.ts` – loads RPC URL/credentials, polling, watched addresses
+- `src/example` – Small runnable examples
+  - `runOnce.ts` – one-shot flow: connect → await block → parse → check
+
+## Services
+
+1. Core service
+- Initialization and dependency wiring (config → rpc → services)
+- Cross-service orchestration (future: polling loop, notification pipeline)
+
+2. Blockchain service (Bitcoin)
+- Connects to Bitcoin node via JSON-RPC
+- Waits for the next block (polling `getblockcount` → `getblockhash`)
+- Parses block with verbosity 2 (`getblock`) and optional input resolution via `getrawtransaction`
+- Checks transactions against configured addresses, outputs per-address activities (in/out, value BTC)
+
+3. Currency service (planned)
+- Fetch BTC→USDT and USDT→USD rates (source TBD per constraints)
+- Provide conversion utilities to compute USD equity for amounts
+
+4. Logger
+- Implemented via Pino at `src/infrastructure/logger/Logger.ts`
+- Outputs structured JSON to stdout (production default)
+- Optional pretty text output for local debugging (`LOG_PRETTY=true`)
+- Env-driven config: `LOG_LEVEL`, `LOG_PRETTY`, `LOG_SERVICE_NAME`, `APP_ENV`/`NODE_ENV`
+- Usage: `const logger = getLogger(); logger.info({ ... })`
+- Transaction notifications: emit JSON events containing at minimum
+  - `type`: e.g., `"block.activities"` or `"transaction.activity"`
+  - `txid`, `address`, `label`, `direction` (in|out), `valueBtc`
+  - `valueUsd` (when currency service is available)
+  - `blockHeight`, `blockHash`
+
+## Configuration
+
+- `BITCOIN_RPC_URL`, `BITCOIN_RPC_USER`, `BITCOIN_RPC_PASSWORD`
+- `BITCOIN_POLL_INTERVAL_MS` (default: 1000)
+- `RESOLVE_INPUT_ADDRESSES` (default: false)
+- `WATCH_ADDRESSES` – CSV `address[:label],...`
+
+### Logger
+
+- `APP_ENV` or `NODE_ENV` – environment name (influences defaults)
+- `LOG_LEVEL` – default `debug` in development, `info` otherwise
+- `LOG_PRETTY` – default `true` in development, `false` otherwise
+- `LOG_SERVICE_NAME` – default `btc-transaction-scanner-bot`
+
+## Data flow (current implementation)
+
+1) Load config → 2) Create `BitcoinRpcClient` → 3) `BitcoinService.connect()`
+→ 4) `awaitNewBlock()` returns parsed block → 5) `checkTransactions(block, watch)`
+→ 6) Activities list for watched addresses → 7) Emit structured JSON notifications via logger

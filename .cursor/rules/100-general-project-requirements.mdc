@@ -1,0 +1,42 @@
+---
+description: General project description and technical requirements
+alwaysApply: false
+---
+
+## Overview
+We are implement a bot that monitors and reports Bitcoin network transactions for a configured list of wallets. The implementation must process raw blockchain data and meet specific performance requirements.
+
+## Technology Stack
+Allowed languages: TypeScript
+
+## Core Requirements
+1. Bot should parse configuration with addresses and names using any preferable structure
+2. Bot should post about new transactions and information about it (from/to, amount, amount in usd, tx hash etc.)
+3. Bot should be compliant to technical requirements Transaction Notifications The bot must send notification to a stdout as json log. Log must contain
+information about transaction.
+
+Any amount of tokens also must have info about equity in USD 
+
+For transactions with both incoming and outgoing operations, display the total
+balance difference.
+
+Raw Data Processing Requirements
+
+1. Direct Block Processing: implement custom parsing of raw Bitcoin blocks
+2. Transaction Analysis:
+a. Implement custom script interpretation for different transaction types Technical Assessment: Bitcoin Transaction Scanner 1
+b. Handle different address formats (legacy, SegWit)
+c. Process and interpret OP_RETURN data when present
+
+## Technical Requirements
+1. Performance Constraints:
+a. Maximum memory usage: 512MB
+b. Transaction notification latency: less or equal to 5 seconds from block discovery
+2. Scalability Requirements:
+a. Support monitoring of at least 1000 concurrent addresses
+b. Handle sustained transaction throughput of 7 TPS
+
+## Restrictions
+1. Usage of blockchain explorer APIs (e.g., blockstream, btcscan) is prohibited
+2. All data must be retrieved directly from public/private RPC nodes using free-tier services (quicknode, infura, alchemy)
+
