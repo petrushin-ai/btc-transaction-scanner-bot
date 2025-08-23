@@ -1,7 +1,7 @@
-import fs from "fs";
-import path from "path";
 import { beforeAll } from "bun:test";
 import { execSync } from "child_process";
+import fs from "fs";
+import path from "path";
 
 function fixturesPresent(fixturesDir: string): boolean {
   try {
