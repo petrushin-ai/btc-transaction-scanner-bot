@@ -1,5 +1,5 @@
 export { BitcoinRpcClient } from "./BitcoinRpcClient";
 export type { BitcoinRpcClientOptions } from "./BitcoinRpcClient";
-export * as Raw from "./raw";
+export * as Raw from "./raw/index.js";
 
 
