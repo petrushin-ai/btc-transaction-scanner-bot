@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
-import { BitcoinService } from "@/application/services/BitcoinService";
-import { logger } from "@/infrastructure/logger";
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
-import type { ParsedBlock, WatchedAddress } from "@/types/blockchain";
-import { mapActivitiesWithUsd } from "@/application/helpers/currency";
 import { logActivities } from "@/application/helpers/bitcoin";
+import { mapActivitiesWithUsd } from "@/application/helpers/currency";
+import { BitcoinService } from "@/application/services/BitcoinService";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import { logger } from "@/infrastructure/logger";
+import type { ParsedBlock, WatchedAddress } from "@/types/blockchain";
 
 // Minimal dummy RPC to satisfy constructor; network is not used here
 class DummyRpc extends BitcoinRpcClient {

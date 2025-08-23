@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import { logActivities, logOpReturnData } from "@/application/helpers/bitcoin";
-import type { ParsedBlock } from "@/types/blockchain";
 import { logger } from "@/infrastructure/logger";
+import type { ParsedBlock } from "@/types/blockchain";
 
 describe("Logging output", () => {
   test("logActivities emits transaction.activity with required fields", () => {

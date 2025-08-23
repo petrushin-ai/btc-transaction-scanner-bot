@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { decodeScriptPubKey } from "@/infrastructure/bitcoin/raw/Script";
 import type { Network } from "@/infrastructure/bitcoin/raw/Address";
+import { decodeScriptPubKey } from "@/infrastructure/bitcoin/raw/Script";
 
 function hexToBuf(hex: string): Buffer {
   return Buffer.from(hex, "hex");
