@@ -1,5 +1,5 @@
 .env
-
+.idea/
 bun.xml
 
 node_modules/
