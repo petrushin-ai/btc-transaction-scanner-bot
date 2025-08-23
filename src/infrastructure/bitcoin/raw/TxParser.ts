@@ -1,7 +1,8 @@
+import {map as lmap} from "lodash-es";
+
 import type {Network} from "./Address";
 import {btcFromSats, ByteReader, sha256d, toHexLE} from "./ByteReader";
 import {decodeScriptPubKey} from "./Script";
-import {map as lmap} from "lodash-es";
 
 export type ParsedTx = {
   txid: string;
