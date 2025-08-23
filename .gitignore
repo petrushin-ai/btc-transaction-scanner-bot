@@ -1,6 +1,8 @@
 .env
 .idea/
+
 bun.xml
+addresses.json
 
 node_modules/
 cache/
