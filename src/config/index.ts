@@ -8,6 +8,7 @@ export type AppConfig = {
   bitcoinRpcUrl: string;
   pollIntervalMs: number;
   resolveInputAddresses: boolean;
+  parseRawBlocks: boolean;
   watch: { address: string; label?: string }[];
   // logger
   environment: string;
@@ -72,6 +73,12 @@ export function loadConfig(): AppConfig {
             { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
           ],
         },
+        PARSE_RAW_BLOCKS: {
+          anyOf: [
+            { type: "boolean" },
+            { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
+          ],
+        },
         WATCH_ADDRESSES_FILE: { type: "string" },
         WATCH_ADDRESSES: { type: "string" },
         APP_ENV: { type: "string" },
@@ -115,6 +122,7 @@ export function loadConfig(): AppConfig {
   const bitcoinRpcUrl = (process.env.BTC_RPC_API_URL as string).trim();
   const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
   const resolveInputAddresses = (process.env.RESOLVE_INPUT_ADDRESSES ?? "").toString().toLowerCase().trim() === "true";
+  const parseRawBlocks = (process.env.PARSE_RAW_BLOCKS ?? "").toString().toLowerCase().trim() === "true";
   const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
   const serviceName = (process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot").toString().trim();
   const defaultLevel = environment === "development" ? "debug" : "info";
@@ -137,6 +145,7 @@ export function loadConfig(): AppConfig {
     bitcoinRpcUrl,
     pollIntervalMs,
     resolveInputAddresses,
+    parseRawBlocks,
     watch,
     environment,
     serviceName,

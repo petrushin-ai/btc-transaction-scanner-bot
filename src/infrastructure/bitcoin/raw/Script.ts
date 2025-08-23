@@ -1,0 +1,104 @@
+import { base58checkEncode, encodeWitnessAddress, getAddressVersionsForNetwork, Network } from "./Address";
+
+export type ScriptType =
+  | "pubkeyhash" // P2PKH
+  | "scripthash" // P2SH
+  | "witness_v0_keyhash" // P2WPKH
+  | "witness_v0_scripthash" // P2WSH
+  | "witness_v1_taproot" // P2TR
+  | "nulldata" // OP_RETURN
+  | "nonstandard";
+
+export type DecodedScript = {
+  type: ScriptType;
+  address?: string;
+  opReturnDataHex?: string;
+};
+
+export function decodeScriptPubKey(script: Buffer, network: Network): DecodedScript {
+  const versions = getAddressVersionsForNetwork(network);
+  // OP_RETURN pattern: 0x6a [pushdata]
+  if (script.length >= 1 && script[0] === 0x6a) {
+    // Extract data payload if present
+    const payload = decodePushAt(script, 1);
+    return { type: "nulldata", opReturnDataHex: payload?.toString("hex") };
+  }
+  // P2PKH: OP_DUP OP_HASH160 0x14 <20-byte-hash> OP_EQUALVERIFY OP_CHECKSIG
+  if (
+    script.length === 25 &&
+    script[0] === 0x76 && // OP_DUP
+    script[1] === 0xa9 && // OP_HASH160
+    script[2] === 0x14 && // PUSH(20)
+    script[23] === 0x88 && // OP_EQUALVERIFY
+    script[24] === 0xac // OP_CHECKSIG
+  ) {
+    const hash160 = script.subarray(3, 23);
+    const address = base58checkEncode(versions.p2pkh, hash160);
+    return { type: "pubkeyhash", address };
+  }
+  // P2SH: OP_HASH160 0x14 <20> OP_EQUAL
+  if (
+    script.length === 23 &&
+    script[0] === 0xa9 &&
+    script[1] === 0x14 &&
+    script[22] === 0x87
+  ) {
+    const hash160 = script.subarray(2, 22);
+    const address = base58checkEncode(versions.p2sh, hash160);
+    return { type: "scripthash", address };
+  }
+  // SegWit v0: 0x00 0x14 (keyhash) or 0x00 0x20 (scripthash)
+  if (script.length >= 2 && script[0] === 0x00 && (script[1] === 0x14 || script[1] === 0x20)) {
+    const prog = script.subarray(2);
+    if (script[1] === 0x14) {
+      const address = encodeWitnessAddress(versions.hrp, 0, prog);
+      return { type: "witness_v0_keyhash", address };
+    } else {
+      const address = encodeWitnessAddress(versions.hrp, 0, prog);
+      return { type: "witness_v0_scripthash", address };
+    }
+  }
+  // Taproot (v1): 0x51 0x20 <32-byte>
+  if (script.length === 34 && script[0] === 0x51 && script[1] === 0x20) {
+    const prog = script.subarray(2);
+    const address = encodeWitnessAddress(versions.hrp, 1, prog);
+    return { type: "witness_v1_taproot", address };
+  }
+  return { type: "nonstandard" };
+}
+
+function decodePushAt(script: Buffer, index: number): Buffer | undefined {
+  if (index >= script.length) return undefined;
+  const opcode = script[index];
+  if (opcode <= 0x4b) {
+    const len = opcode;
+    const start = index + 1;
+    const end = start + len;
+    if (end > script.length) return undefined;
+    return script.subarray(start, end);
+  }
+  if (opcode === 0x4c) {
+    const len = script[index + 1];
+    const start = index + 2;
+    const end = start + len;
+    if (end > script.length) return undefined;
+    return script.subarray(start, end);
+  }
+  if (opcode === 0x4d) {
+    const len = script.readUInt16LE(index + 1);
+    const start = index + 3;
+    const end = start + len;
+    if (end > script.length) return undefined;
+    return script.subarray(start, end);
+  }
+  if (opcode === 0x4e) {
+    const len = script.readUInt32LE(index + 1);
+    const start = index + 5;
+    const end = start + len;
+    if (end > script.length) return undefined;
+    return script.subarray(start, end);
+  }
+  return undefined;
+}
+
+

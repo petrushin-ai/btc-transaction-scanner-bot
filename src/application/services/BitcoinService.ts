@@ -1,4 +1,4 @@
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import { BitcoinRpcClient, Raw } from "@/infrastructure/bitcoin";
 import type { HealthResult } from "@/types/healthcheck";
 import type {
   AddressActivity,
@@ -11,21 +11,31 @@ import type {
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
   resolveInputAddresses?: boolean;
+  parseRawBlocks?: boolean;
 };
 
 export class BitcoinService implements BlockchainService {
   private rpc: BitcoinRpcClient;
   private pollIntervalMs: number;
   private resolveInputAddresses: boolean;
+  private parseRawBlocks: boolean;
+  private network: Raw.Network = "mainnet";
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
     this.pollIntervalMs = opts?.pollIntervalMs ?? 1000;
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
+    this.parseRawBlocks = opts?.parseRawBlocks ?? false;
   }
 
   async connect(): Promise<void> {
-    await this.rpc.getBlockchainInfo();
+    const info = await this.rpc.getBlockchainInfo();
+    // Map chain to network HRP
+    const chain = String((info as any).chain || "main");
+    if (chain === "main") this.network = "mainnet";
+    else if (chain === "test") this.network = "testnet";
+    else if (chain === "signet") this.network = "signet";
+    else this.network = "regtest";
   }
 
   async ping(): Promise<HealthResult> {
@@ -69,13 +79,61 @@ export class BitcoinService implements BlockchainService {
   }
 
   async parseBlockByHash(blockHash: string): Promise<ParsedBlock> {
-    const block = (await this.rpc.getBlockByHashVerbose2(blockHash)) as any;
+    if (!this.parseRawBlocks) {
+      const block = (await this.rpc.getBlockByHashVerbose2(blockHash)) as any;
+      const parsed: ParsedBlock = {
+        hash: block.hash,
+        height: block.height,
+        time: block.time,
+        transactions: await this.parseTransactions(block.tx),
+      };
+      return parsed;
+    }
+    // Raw path
+    const [hex, header] = await Promise.all([
+      this.rpc.getBlockRawByHash(blockHash),
+      this.rpc.getBlockHeader(blockHash),
+    ]);
+    const rawParsed = Raw.parseRawBlock(hex, this.network);
     const parsed: ParsedBlock = {
-      hash: block.hash,
-      height: block.height,
-      time: block.time,
-      transactions: await this.parseTransactions(block.tx),
+      hash: rawParsed.hash,
+      height: header.height,
+      time: header.time,
+      transactions: rawParsed.transactions.map((t) => ({
+        txid: t.txid,
+        inputs: [], // optionally resolved below
+        outputs: t.outputs.map((o) => ({
+          address: o.address,
+          valueBtc: o.valueBtc,
+          scriptType: o.scriptType,
+          opReturnDataHex: o.opReturnDataHex,
+          opReturnUtf8: o.opReturnDataHex ? tryDecodeUtf8(o.opReturnDataHex) : undefined,
+        })),
+      })),
     };
+    // resolve inputs if configured
+    if (this.resolveInputAddresses) {
+      for (const tx of parsed.transactions) {
+        const rawTx = rawParsed.transactions.find((x) => x.txid === tx.txid)!;
+        const inputs: { address?: string; valueBtc?: number }[] = [];
+        for (const vin of rawTx.inputs) {
+          if (vin.prevTxId === "" || vin.prevTxId === "0".repeat(64)) {
+            inputs.push({});
+            continue;
+          }
+          try {
+            const prev = (await this.rpc.getRawTransactionVerbose(vin.prevTxId)) as any;
+            const prevOut = prev.vout?.[vin.prevVout];
+            const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
+            const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
+            inputs.push({ address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined });
+          } catch {
+            inputs.push({});
+          }
+        }
+        (tx as any).inputs = inputs;
+      }
+    }
     return parsed;
   }
 
@@ -211,6 +269,17 @@ export class BitcoinService implements BlockchainService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+}
+
+function tryDecodeUtf8(hex: string): string | undefined {
+  try {
+    const buf = Buffer.from(hex, "hex");
+    const text = new TextDecoder().decode(buf);
+    const printable = /[\x09\x0A\x0D\x20-\x7E]/.test(text);
+    return printable ? text : undefined;
+  } catch {
+    return undefined;
   }
 }
 

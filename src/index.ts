@@ -13,6 +13,7 @@ async function main() {
   const btc = new BitcoinService(rpc, {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
+    parseRawBlocks: cfg.parseRawBlocks,
   });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,

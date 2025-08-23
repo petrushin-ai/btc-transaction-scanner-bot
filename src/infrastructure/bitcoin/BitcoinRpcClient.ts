@@ -87,9 +87,18 @@ export class BitcoinRpcClient {
     return this.call("getblock", [blockHash, 0]);
   }
 
+  // Return block header (to map hash -> height and time efficiently when parsing raw blocks)
+  getBlockHeader(blockHash: string): Promise<{ height: number; time: number }> {
+    return this.call("getblockheader", [blockHash, true]);
+  }
+
   // Fetch previous transaction to resolve input addresses; requires -txindex on node for historical lookups
   getRawTransactionVerbose(txid: string): Promise<unknown> {
     return this.call("getrawtransaction", [txid, true]);
+  }
+
+  getBlockchainNetwork(): Promise<{ chain: string }> {
+    return this.call("getblockchaininfo").then((x: any) => ({ chain: String(x.chain) }));
   }
 }
 

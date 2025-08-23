@@ -9,7 +9,8 @@
     "start": "bun src/index.ts",
     "example:rates": "bun src/example/currencyRates.ts",
     "healthcheck": "bun src/example/healthcheck.ts",
-    "fixtures:blocks": "bun tests/fetch-block-fixtures.ts"
+    "fixtures:blocks": "bun tests/fetch-block-fixtures.ts",
+    "test:compare": "bun tests/compare-raw-vs-verbose.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
