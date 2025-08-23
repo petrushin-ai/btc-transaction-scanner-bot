@@ -17,6 +17,9 @@ export type AppConfig = {
   serviceName: string;
   logLevel: string;
   logPretty: boolean;
+  // coinapi
+  coinApiBaseUrl: string;
+  coinApiApiKey: string;
 };
 
 function parseWatchAddresses(raw: string | undefined): { address: string; label?: string }[] {
@@ -44,6 +47,7 @@ export function loadConfig(): AppConfig {
         "BITCOIN_RPC_URL", 
         "BITCOIN_RPC_USER", 
         "BITCOIN_RPC_PASSWORD", 
+        "COINAPI_BASE_URL",
         "API_KEY_APIBRICKS_COINAPI"
       ],
       additionalProperties: false,
@@ -61,6 +65,13 @@ export function loadConfig(): AppConfig {
           anyOf: [
             { type: "integer", minimum: 1 },
             { type: "string", pattern: "^[0-9]+$" },
+          ],
+        },
+        COINAPI_BASE_URL: {
+          type: "string",
+          allOf: [
+            { format: "uri" },
+            { pattern: "^https?://" },
           ],
         },
         RESOLVE_INPUT_ADDRESSES: {
@@ -82,6 +93,13 @@ export function loadConfig(): AppConfig {
           ],
         },
         API_KEY_APIBRICKS_COINAPI: { type: "string", minLength: 1 },
+        COINAPI_BASE_URL: {
+          type: "string",
+          allOf: [
+            { format: "uri" },
+            { pattern: "^https?://" },
+          ],
+        },
       },
     } as const;
 
@@ -89,7 +107,8 @@ export function loadConfig(): AppConfig {
     const envData: Record<string, unknown> = {};
     for (const key of allowedKeys) {
       if (Object.prototype.hasOwnProperty.call(process.env, key)) {
-        envData[key] = process.env[key];
+        const value = process.env[key];
+        envData[key] = typeof value === "string" ? value.trim() : value;
       }
     }
 
@@ -108,18 +127,20 @@ export function loadConfig(): AppConfig {
     throw new Error(`Environment validation failed: ${message}`);
   }
   const cwd = process.cwd();
-  const addressesFile = process.env.WATCH_ADDRESSES_FILE || path.join(cwd, "addresses.json");
-  const bitcoinRpcUrl = process.env.BITCOIN_RPC_URL as string;
-  const bitcoinRpcUser = process.env.BITCOIN_RPC_USER;
-  const bitcoinRpcPassword = process.env.BITCOIN_RPC_PASSWORD;
-  const pollIntervalMs = Number(process.env.BITCOIN_POLL_INTERVAL_MS || 1000);
-  const resolveInputAddresses = (process.env.RESOLVE_INPUT_ADDRESSES ?? "").toLowerCase() === "true";
-  const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").trim();
-  const serviceName = process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot";
+  const addressesFile = (process.env.WATCH_ADDRESSES_FILE || path.join(cwd, "addresses.json")).trim();
+  const bitcoinRpcUrl = (process.env.BITCOIN_RPC_URL as string).trim();
+  const bitcoinRpcUser = process.env.BITCOIN_RPC_USER?.trim();
+  const bitcoinRpcPassword = process.env.BITCOIN_RPC_PASSWORD?.trim();
+  const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
+  const resolveInputAddresses = (process.env.RESOLVE_INPUT_ADDRESSES ?? "").toString().toLowerCase().trim() === "true";
+  const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
+  const serviceName = (process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot").toString().trim();
   const defaultLevel = environment === "development" ? "debug" : "info";
-  const logLevel = process.env.LOG_LEVEL || defaultLevel;
+  const logLevel = (process.env.LOG_LEVEL || defaultLevel).toString().trim();
   const prettyDefault = environment === "development" ? "true" : "false";
-  const logPretty = (process.env.LOG_PRETTY || prettyDefault).toLowerCase() === "true";
+  const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
+  const coinApiApiKey = (process.env.API_KEY_APIBRICKS_COINAPI as string).trim();
+  const coinApiBaseUrl = (process.env.COINAPI_BASE_URL || "https://rest.coinapi.io").toString().trim();
   let watch: { address: string; label?: string }[] = [];
   try {
     const fileContent = fs.readFileSync(addressesFile, "utf-8");
@@ -141,6 +162,8 @@ export function loadConfig(): AppConfig {
     serviceName,
     logLevel,
     logPretty,
+    coinApiBaseUrl,
+    coinApiApiKey,
   };
 }
 

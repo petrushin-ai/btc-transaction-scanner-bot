@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "start": "bun src/index.ts",
+    "example:rates": "bun src/example/currencyRates.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",

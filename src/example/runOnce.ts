@@ -30,7 +30,7 @@ async function main() {
 if (import.meta.main) {
   main().catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`runOnce failed: ${message}`);
+    logger.error(`runOnce failed: ${message}`);
     process.exit(1);
   });
 }
