@@ -1,10 +1,10 @@
-import { describe, expect, test } from "bun:test";
+import {describe, expect, test} from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import { Raw } from "@/infrastructure/bitcoin";
+import {Raw} from "@/infrastructure/bitcoin";
 
-import { emitMetric, memoryUsageMb } from "./_metrics";
+import {emitMetric, memoryUsageMb} from "./_metrics";
 
 function readHex(filePath: string): string {
   const hex = fs.readFileSync(filePath, "utf8").trim();
@@ -13,7 +13,7 @@ function readHex(filePath: string): string {
 
 describe("Raw parser performance", () => {
   test("parse latest fixture block within time and memory budget", () => {
-    const fixturesDir = path.join(process.cwd(), "tests", "fixtures");
+    const fixturesDir = path.join(process.cwd(), "test", "fixtures");
     const entries = fs.readdirSync(fixturesDir).filter((f) => f.endsWith("-current.raw"));
     if (entries.length === 0) {
       throw new Error("No *.raw fixtures found");
@@ -43,7 +43,7 @@ describe("Raw parser performance", () => {
       name: "parse_block_ms",
       value: Math.round(parseMs),
       unit: "ms",
-      details: { txCount: block.transactions.length },
+      details: {txCount: block.transactions.length},
     });
     emitMetric({
       suite: "raw-parser",

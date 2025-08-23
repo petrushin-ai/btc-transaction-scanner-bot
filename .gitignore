@@ -5,4 +5,4 @@ bun.xml
 node_modules/
 cache/
 logs/
-tests/fixtures/
+test/fixtures/

@@ -1,11 +1,11 @@
 import fs from "fs";
 import path from "path";
 
-import { loadConfig } from "@/config";
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import {loadConfig} from "@/config";
+import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
 
 async function ensureDir(dir: string): Promise<void> {
-  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.mkdir(dir, {recursive: true});
 }
 
 async function writeFileAtomic(filePath: string, data: string | Uint8Array): Promise<void> {
@@ -16,9 +16,9 @@ async function writeFileAtomic(filePath: string, data: string | Uint8Array): Pro
 
 async function main() {
   const cfg = loadConfig();
-  const rpc = new BitcoinRpcClient({ url: cfg.bitcoinRpcUrl });
+  const rpc = new BitcoinRpcClient({url: cfg.bitcoinRpcUrl});
 
-  const fixturesDir = path.join(process.cwd(), "tests", "fixtures");
+  const fixturesDir = path.join(process.cwd(), "test", "fixtures");
   await ensureDir(fixturesDir);
 
   const currentHeight = await rpc.getBlockCount();
@@ -41,10 +41,10 @@ async function main() {
 
   const prefix = `block-${currentHeight}`;
   const files = [
-    { name: `${prefix}-current.json`, data: JSON.stringify(currentVerbose, null, 2) },
-    { name: `${prefix}-prev.json`, data: JSON.stringify(prevVerbose, null, 2) },
-    { name: `${prefix}-current.raw`, data: `${currentRaw}\n` },
-    { name: `${prefix}-prev.raw`, data: `${prevRaw}\n` },
+    {name: `${prefix}-current.json`, data: JSON.stringify(currentVerbose, null, 2)},
+    {name: `${prefix}-prev.json`, data: JSON.stringify(prevVerbose, null, 2)},
+    {name: `${prefix}-current.raw`, data: `${currentRaw}\n`},
+    {name: `${prefix}-prev.raw`, data: `${prevRaw}\n`},
   ];
 
   for (const f of files) {

@@ -1,8 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import {describe, expect, test} from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import { Raw } from "@/infrastructure/bitcoin";
+import {Raw} from "@/infrastructure/bitcoin";
 
 function readHex(filePath: string): string {
   return fs.readFileSync(filePath, "utf8").trim();
@@ -10,7 +10,7 @@ function readHex(filePath: string): string {
 
 describe("Raw block parsing consistency", () => {
   test("tx count matches verbose JSON fixture and decodes addresses/OP_RETURN", () => {
-    const fixturesDir = path.join(process.cwd(), "tests", "fixtures");
+    const fixturesDir = path.join(process.cwd(), "test", "fixtures");
     const entries = fs.readdirSync(fixturesDir).filter((f) => f.endsWith("-current" + ".raw"));
     if (entries.length === 0) throw new Error("No *.raw fixtures found");
     // choose latest by height in filename
