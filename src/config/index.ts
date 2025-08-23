@@ -91,6 +91,7 @@ export function loadConfig(): AppConfig {
             { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
           ],
         },
+        VERBOSE:{ type: "boolean" },
       },
     } as const;
 
