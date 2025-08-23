@@ -1,14 +1,11 @@
 import dotenv from "dotenv";
-import fs from "fs";
 import path from "path";
 
+import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
+
 function fileExists(p: string): boolean {
-  try {
-    fs.accessSync(p, fs.constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
+  const storage = getFileStorage();
+  return storage.fileExists(p);
 }
 
 export function loadEnvFiles(cwd: string = process.cwd()): void {

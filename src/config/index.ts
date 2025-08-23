@@ -1,7 +1,8 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import fs from "fs";
 import path from "path";
+
+import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
 
 import {loadEnvFiles} from "./env";
 
@@ -151,7 +152,8 @@ export function loadConfig(): AppConfig {
   const coinMarketCapBaseUrl = (process.env.COINMARKETCAP_BASE_URL || "https://pro-api.coinmarketcap.com").toString().trim();
   let watch: { address: string; label?: string }[] = [];
   try {
-    const fileContent = fs.readFileSync(addressesFile, "utf-8");
+    const storage = getFileStorage();
+    const fileContent = storage.readFile(addressesFile, "utf-8");
     const json = JSON.parse(fileContent);
     if (Array.isArray(json)) {
       watch = json.filter((x) => typeof x?.address === "string").map((x) => ({

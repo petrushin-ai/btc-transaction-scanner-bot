@@ -8,10 +8,10 @@ import { logger as getLogger } from "@/infrastructure/logger";
 const logger = getLogger({ fileName: "currency_rates" });
 
 async function main() {
-  const config = loadConfig();
+  const cfg = loadConfig();
   const client = new CoinMarketCapClient({
-    apiKey: config.coinMarketCapApiKey,
-    baseUrl: config.coinMarketCapBaseUrl,
+    apiKey: cfg.coinMarketCapApiKey,
+    baseUrl: cfg.coinMarketCapBaseUrl,
   });
   const currency = new CurrencyService(client);
 

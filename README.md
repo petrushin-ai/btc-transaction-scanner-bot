@@ -36,7 +36,7 @@ Variables (with defaults and purpose):
 - `RESOLVE_INPUT_ADDRESSES` (`true|false`, default: `false`)
   - When `true`, resolves input addresses by fetching previous transactions. Enables detection of outgoing ("out") activities but increases RPC calls.
 - `WATCH_ADDRESSES_FILE` (default: `./addresses.json`)
-  - Path to a JSON file containing an array of `{ address, label? }` to watch. Used as the primary source.
+  - Path to a JSON file containing an array of `{ address, label? }` to watch. Used as the primary source. Loaded via `FileStorageService`.
 - `WATCH_ADDRESSES` (optional)
   - CSV fallback used only if `WATCH_ADDRESSES_FILE` is missing/unreadable. Format: `address[:label],address[:label],...`.
 
@@ -61,6 +61,7 @@ Examples:
 
 ```ts
 import { getLogger } from "./src/infrastructure/logger";
+import { getFileStorage } from "./src/infrastructure";
 
 // Default: JSON array files (logs/output.json)
 const logger = getLogger();
@@ -73,6 +74,25 @@ taskLogger.info({ step: 1 });
 // NDJSON mode for files (writes to logs/stream.ndjson)
 const ndjsonLogger = getLogger({ fileName: "stream", ndjson: true });
 ndjsonLogger.info({ event: "start" });
+```
+
+### File storage abstraction
+
+All filesystem interactions are routed through `FileStorageService` to keep IO concerns decoupled.
+
+- Logger file destinations use the storage abstraction for safe array-JSON writes.
+- Currency cache (`cache/currency_rates.json`) reads/writes via the storage service.
+- Config address loading (`WATCH_ADDRESSES_FILE`) uses the storage service.
+
+You can access the default implementation via:
+
+```ts
+import { getFileStorage } from "./src/infrastructure";
+
+const storage = getFileStorage();
+if (storage.fileExists("addresses.json")) {
+  const json = JSON.parse(storage.readFile("addresses.json", "utf-8"));
+}
 ```
 
 ### Currency

@@ -1,0 +1,22 @@
+## Storage abstraction
+
+### Motivation
+
+To decouple filesystem concerns from application logic and enable future portability (e.g., switching to cloud storage), all file IO is routed through a `FileStorageService`.
+
+### Implementation
+
+- Interface and default implementation: `src/infrastructure/storage/FileStorageService.ts`
+- Default provider uses Node's synchronous `fs` APIs where correctness is critical (logger's JSON array writer), and exposes minimal primitives required by the codebase.
+
+### Current usage
+
+- Logger file destinations (`src/infrastructure/logger/helpers.ts`): JSON-array destination uses storage primitives for atomic-like bracket management and safe appends.
+- Currency cache (`src/application/services/CurrencyService.ts`): reads/writes `cache/currency_rates.json` via storage.
+- Config (`src/config/index.ts` and `src/config/env.ts`): address file detection and reading via storage.
+
+### Extensibility
+
+- Alternative providers can be implemented (e.g., memory, S3, GCS). Swap by changing `getFileStorage()` factory wiring.
+- Higher-level APIs (JSON read/write with validation) can be layered atop this service as needed.
+

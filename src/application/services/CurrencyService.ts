@@ -1,8 +1,8 @@
-import fs from "fs";
 import path from "path";
 import {fileURLToPath} from "url";
 
 import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
+import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
 import type {CurrencyCode, CurrencyRateProvider, ExchangeRate} from "@/types/currency";
 import type {HealthResult} from "@/types/healthcheck";
 
@@ -57,24 +57,14 @@ export class CurrencyService implements CurrencyRateProvider {
   }
 
   private ensureCacheDirectory(): void {
-    const dir = path.dirname(this.cacheFilePath);
-    try {
-      fs.mkdirSync(dir, {recursive: true});
-    } catch {
-      // ignore mkdir errors; next fs ops will throw if truly inaccessible
-    }
-    // Ensure cache file exists so subsequent reads/writes work seamlessly
-    try {
-      if (!fs.existsSync(this.cacheFilePath)) {
-        fs.writeFileSync(this.cacheFilePath, "{}", {encoding: "utf-8", flag: "wx"});
-      }
-    } catch {
-      // ignore creation errors; subsequent fs ops will surface real issues
-    }
+    const storage = getFileStorage();
+    storage.ensureDir(path.dirname(this.cacheFilePath));
+    storage.ensureFile(this.cacheFilePath, "{}");
   }
 
   private resolveProjectRoot(): string {
-    const hasPkg = (dir: string) => fs.existsSync(path.join(dir, "package.json"));
+    const storage = getFileStorage();
+    const hasPkg = (dir: string) => storage.fileExists(path.join(dir, "package.json"));
     const findBaseDir = (startDir: string): string => {
       let current = startDir;
       while (true) {
@@ -95,8 +85,9 @@ export class CurrencyService implements CurrencyRateProvider {
   private readCache(): any {
     this.ensureCacheDirectory();
     try {
-      if (!fs.existsSync(this.cacheFilePath)) return {};
-      const content = fs.readFileSync(this.cacheFilePath, "utf-8");
+      const storage = getFileStorage();
+      if (!storage.fileExists(this.cacheFilePath)) return {};
+      const content = storage.readFile(this.cacheFilePath, "utf-8");
       if (!content.trim()) return {};
       const json = JSON.parse(content);
       return (json && typeof json === "object") ? json : {};
@@ -109,7 +100,8 @@ export class CurrencyService implements CurrencyRateProvider {
     this.ensureCacheDirectory();
     try {
       const serialized = JSON.stringify(cache, null, 2);
-      fs.writeFileSync(this.cacheFilePath, serialized, "utf-8");
+      const storage = getFileStorage();
+      storage.writeFile(this.cacheFilePath, serialized, "utf-8");
     } catch {
       // best-effort cache; ignore write errors
     }

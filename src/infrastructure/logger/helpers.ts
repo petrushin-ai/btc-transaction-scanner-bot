@@ -1,7 +1,8 @@
-import fs from "fs";
 import path from "path";
 import pino from "pino";
 import {Writable} from "stream";
+
+import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
 
 export type LoggingEnv = {
   environment: string;
@@ -21,12 +22,8 @@ export function getLoggingEnv(): LoggingEnv {
 }
 
 export function fileExists(filePath: string): boolean {
-  try {
-    fs.accessSync(filePath, fs.constants.F_OK);
-    return true;
-  } catch {
-    return false;
-  }
+  const storage = getFileStorage();
+  return storage.fileExists(filePath);
 }
 
 export function findProjectRoot(startDir: string): string {
@@ -40,16 +37,8 @@ export function findProjectRoot(startDir: string): string {
 }
 
 export function ensureFile(filePath: string, initialContent = ""): void {
-  try {
-    fs.mkdirSync(path.dirname(filePath), {recursive: true});
-  } catch {
-  }
-  try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, initialContent, {encoding: "utf-8", flag: "wx"});
-    }
-  } catch {
-  }
+  const storage = getFileStorage();
+  storage.ensureFile(filePath, initialContent);
 }
 
 export function normalizeJsonFileName(rawName: string): string {
@@ -108,29 +97,30 @@ export function buildStdoutStream(logPretty: boolean): pino.DestinationStream {
  */
 export function createJsonArrayFileDestination(filePath: string): pino.DestinationStream {
   ensureFile(filePath, "");
+  const storage = getFileStorage();
 
-  const fd = fs.openSync(filePath, "a+");
+  const fd = storage.open(filePath, "a+");
 
   function initializeArrayIfNeeded(): { insertPos: number; hasItems: boolean } {
-    const stat = fs.fstatSync(fd);
+    const stat = storage.fstat(fd);
     if (stat.size === 0) {
       const init = Buffer.from("[]\n", "utf-8");
-      fs.writeSync(fd, init, 0, init.length, 0);
+      storage.write(fd, init, 0, init.length, 0);
       return {insertPos: 1, hasItems: false}; // position of ']'
     }
 
     // Read a small tail window to locate the last closing bracket
     const readSize = Math.min(stat.size, 4096);
     const tail = Buffer.alloc(readSize);
-    fs.readSync(fd, tail, 0, readSize, stat.size - readSize);
+    storage.read(fd, tail, 0, readSize, stat.size - readSize);
     // Find last non-whitespace char and ensure it is ']'
     let idx = readSize - 1;
     while (idx >= 0 && /\s/.test(String.fromCharCode(tail[idx]))) idx--;
     if (idx < 0 || tail[idx] !== "]".charCodeAt(0)) {
       // File is not a valid array ending. Normalize to empty array.
-      fs.ftruncateSync(fd, 0);
+      storage.ftruncate(fd, 0);
       const init = Buffer.from("[]\n", "utf-8");
-      fs.writeSync(fd, init, 0, init.length, 0);
+      storage.write(fd, init, 0, init.length, 0);
       return {insertPos: 1, hasItems: false};
     }
 
@@ -163,7 +153,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
 
         const prefix = state.hasItems ? ",\n" : "\n";
         const payload = Buffer.from(`${prefix}${asString}\n]`, "utf-8");
-        fs.writeSync(fd, payload, 0, payload.length, state.insertPos);
+        storage.write(fd, payload, 0, payload.length, state.insertPos);
         // Update insert position: we added payload minus the trailing ']' that stays at the end
         state = {
           insertPos: state.insertPos + payload.length - 1,
@@ -176,7 +166,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     },
     final(callback) {
       try {
-        fs.closeSync(fd);
+        storage.close(fd);
       } catch {
       }
       callback();
