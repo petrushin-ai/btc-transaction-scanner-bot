@@ -194,3 +194,39 @@ bun test --reporter=junit --reporter-outfile=bun.xml
 
 Bun test docs: https://bun.com/docs/cli/test
 ```
+
+### Docker Compose (recommended)
+
+Compose will proxy variables from your local `.env` file into the container automatically.
+
+Prod-like run:
+
+```bash
+bun run docker:up
+# tail logs
+bun run docker:logs
+# stop
+bun run docker:down
+```
+
+Dev run with live reload (mounts project, runs `bun --watch src/index.ts`):
+
+```bash
+bun run docker:dev:up
+# stop
+bun run docker:dev:down
+```
+
+Service name in Compose is `btc-transaction-scanner-bot`.
+
+Compose proxies these env vars from `.env`:
+
+- `APP_ENV`
+- `BTC_RPC_API_URL`
+- `BITCOIN_POLL_INTERVAL_MS`
+- `RESOLVE_INPUT_ADDRESSES`
+- `CUR_CACHE_VALIDITY_PERIOD`
+- `COINMARKETCAP_BASE_URL`
+- `API_KEY_COINMARKETCAP`
+- `PARSE_RAW_BLOCKS`
+- `VERBOSE`
