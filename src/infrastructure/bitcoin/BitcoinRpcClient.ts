@@ -34,35 +34,27 @@ export class BitcoinRpcClient {
   }
 
   private async call<T>(method: string, params: unknown[] = []): Promise<T> {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
-    try {
-      const body: JsonRpcRequest = {
-        jsonrpc: "2.0",
-        id: this.nextId++,
-        method,
-        params,
-      };
-      const response = await fetch(this.url, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          ...(this.authHeader ? {authorization: this.authHeader} : {}),
-        },
-        body: JSON.stringify(body),
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new Error(`RPC HTTP ${response.status}: ${await response.text()}`);
-      }
-      const json = (await response.json()) as JsonRpcResponse<T>;
-      if (json.error) {
-        throw new Error(`RPC ${method} error ${json.error.code}: ${json.error.message}`);
-      }
-      return json.result;
-    } finally {
-      clearTimeout(timeout);
+    const body: JsonRpcRequest = {
+      jsonrpc: "2.0",
+      id: this.nextId++,
+      method,
+      params,
+    };
+    // Inline import to avoid top-level cycle concerns
+    const {fetchJson, HTTP_METHOD} = await import("@/application/helpers/http");
+    const json = await fetchJson<JsonRpcResponse<T>>(this.url, {
+      method: HTTP_METHOD.POST,
+      headers: {
+        "content-type": "application/json",
+        ...(this.authHeader ? {authorization: this.authHeader} : {}),
+      },
+      body,
+      timeoutMs: this.timeoutMs,
+    });
+    if (json.error) {
+      throw new Error(`RPC ${method} error ${json.error.code}: ${json.error.message}`);
     }
+    return json.result;
   }
 
   getBlockchainInfo(): Promise<{ chain: string; blocks: number }> {
