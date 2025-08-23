@@ -77,7 +77,17 @@ export function sha256d(buffer: Buffer): Buffer {
 
 export function toHexLE(buffer: Buffer): string {
   // Render as big-endian hex of the reversed bytes (for txid/hash display)
-  return Buffer.from(buffer).reverse().toString("hex");
+  const hexChars = "0123456789abcdef";
+  const len = buffer.length;
+  // Each byte -> 2 chars
+  const out = new Array(len * 2);
+  // Reverse order without allocating a copy, and fill hex chars
+  for (let i = 0; i < len; i++) {
+    const b = buffer[len - 1 - i];
+    out[i * 2] = hexChars[(b >>> 4) & 0x0f];
+    out[i * 2 + 1] = hexChars[b & 0x0f];
+  }
+  return out.join("");
 }
 
 export function btcFromSats(sats: bigint): number {

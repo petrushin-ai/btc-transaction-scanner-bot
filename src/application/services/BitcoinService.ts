@@ -24,6 +24,12 @@ export class BitcoinService implements BlockchainService {
   private network: Raw.Network = "mainnet";
   private verbose: boolean = false;
   private log: AppLogger;
+  // cache for watched address structures to avoid rebuilding per tx
+  private _watchedCache?: {
+    sourceRef: WatchedAddress[] | undefined;
+    watchSet: Map<string, string | undefined>;
+    labelIndex: Map<string, { address: string; label?: string }[]>;
+  };
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
@@ -172,18 +178,25 @@ export class BitcoinService implements BlockchainService {
   }
 
   checkTransactions(block: ParsedBlock, watched: WatchedAddress[]): AddressActivity[] {
-    const watchSet = new Map<string, string | undefined>();
-    for (const w of watched) watchSet.set(w.address, w.label);
-    // Build a case-insensitive index of labels to addresses for OP_RETURN matching
-    const labelIndex = new Map<string, { address: string; label?: string }[]>();
-    for (const w of watched) {
-      if (w.label && typeof w.label === "string") {
-        const key = w.label.trim().toLowerCase();
-        if (key.length === 0) continue;
-        const arr = labelIndex.get(key) || [];
-        arr.push({ address: w.address, label: w.label });
-        labelIndex.set(key, arr);
+    let watchSet: Map<string, string | undefined>;
+    let labelIndex: Map<string, { address: string; label?: string }[]>;
+    if (this._watchedCache && this._watchedCache.sourceRef === watched) {
+      watchSet = this._watchedCache.watchSet;
+      labelIndex = this._watchedCache.labelIndex;
+    } else {
+      watchSet = new Map<string, string | undefined>();
+      for (const w of watched) watchSet.set(w.address, w.label);
+      labelIndex = new Map<string, { address: string; label?: string }[]>();
+      for (const w of watched) {
+        if (w.label && typeof w.label === "string") {
+          const key = w.label.trim().toLowerCase();
+          if (key.length === 0) continue;
+          const arr = labelIndex.get(key) || [];
+          arr.push({ address: w.address, label: w.label });
+          labelIndex.set(key, arr);
+        }
       }
+      this._watchedCache = {sourceRef: watched, watchSet, labelIndex};
     }
 
     const activities: AddressActivity[] = [];

@@ -1,6 +1,7 @@
 import type {Network} from "./Address";
 import {btcFromSats, ByteReader, sha256d, toHexLE} from "./ByteReader";
 import {decodeScriptPubKey} from "./Script";
+import {map as lmap} from "lodash-es";
 
 export type ParsedTx = {
   txid: string;
@@ -9,11 +10,10 @@ export type ParsedTx = {
     prevVout: number;
     scriptSig: string;
     sequence: number;
-    witness?: string[]
+    // witness not retained to minimize memory
   }[];
   outputs: {
     valueBtc: number;
-    scriptPubKeyHex: string;
     address?: string;
     scriptType?: string;
     opReturnDataHex?: string
@@ -64,23 +64,20 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     const decoded = decodeScriptPubKey(pkScript, network);
     outputs.push({
       valueBtc: btcFromSats(valueSats),
-      scriptPubKeyHex: pkScript.toString("hex"),
       address: decoded.address,
       scriptType: decoded.type,
       opReturnDataHex: decoded.opReturnDataHex,
     });
   }
 
-  let witnesses: string[][] = [];
   const posBeforeWitness = reader.position;
   if (hasWitness) {
-    witnesses = inputs.map(() => [] as string[]);
     for (let i = 0; i < vinCount; i++) {
       const nStack = reader.readVarInt();
       for (let j = 0; j < nStack; j++) {
         const itemLen = reader.readVarInt();
-        const item = reader.readSlice(itemLen);
-        witnesses[i].push(item.toString("hex"));
+        // consume bytes without converting to hex strings to reduce allocations
+        reader.readSlice(itemLen);
       }
     }
   }
@@ -97,10 +94,7 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   const locktimeBytes = reader.sliceAbsolute(locktimeStart, locktimeStart + 4);
   const nonWitnessSerialization = Buffer.concat([versionBytes, preWitness, locktimeBytes]);
   const txid = toHexLE(sha256d(nonWitnessSerialization));
-  // attach witness data
-  if (hasWitness) {
-    for (let i = 0; i < inputs.length; i++) inputs[i].witness = witnesses[i];
-  }
+  // witness data omitted intentionally
 
   return {txid, inputs, outputs};
 }
