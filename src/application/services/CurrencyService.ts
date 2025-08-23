@@ -1,6 +1,7 @@
-import type { CurrencyRateProvider } from "@/domain/currency";
-import type { CurrencyCode, ExchangeRate } from "@/domain/currency";
+import type { CurrencyRateProvider } from "@/types/currency";
+import type { CurrencyCode, ExchangeRate } from "@/types/currency";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
+import type { HealthResult } from "@/types/health";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -47,6 +48,10 @@ export class CurrencyService implements CurrencyRateProvider {
     const q = quote ?? this.defaultQuote;
     if (!b || !q) throw new Error("Currency pair is not specified");
     return this.getRate(b, q);
+  }
+
+  async ping(): Promise<HealthResult> {
+    return this.client.ping();
   }
 
   private ensureCacheDirectory(): void {

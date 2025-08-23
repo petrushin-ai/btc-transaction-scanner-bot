@@ -1,11 +1,12 @@
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { HealthResult } from "@/types/health";
 import type {
   AddressActivity,
   BlockchainService,
   ParsedBlock,
   ParsedTransaction,
   WatchedAddress,
-} from "../../domain/blockchain";
+} from "../../types/blockchain";
 
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
@@ -25,6 +26,33 @@ export class BitcoinService implements BlockchainService {
 
   async connect(): Promise<void> {
     await this.rpc.getBlockchainInfo();
+  }
+
+  async ping(): Promise<HealthResult> {
+    const started = Date.now();
+    try {
+      const info = await this.rpc.getBlockchainInfo();
+      const latencyMs = Date.now() - started;
+      return {
+        provider: "bitcoin-rpc",
+        ok: true,
+        status: "ok",
+        latencyMs,
+        checkedAt: new Date().toISOString(),
+        details: { chain: info.chain, blocks: info.blocks },
+      };
+    } catch (err) {
+      const latencyMs = Date.now() - started;
+      const message = err instanceof Error ? err.message : String(err);
+      return {
+        provider: "bitcoin-rpc",
+        ok: false,
+        status: "error",
+        latencyMs,
+        checkedAt: new Date().toISOString(),
+        details: { error: message },
+      };
+    }
   }
 
   async awaitNewBlock(sinceHeight?: number): Promise<ParsedBlock> {
@@ -57,25 +85,55 @@ export class BitcoinService implements BlockchainService {
 
     const activities: AddressActivity[] = [];
     for (const tx of block.transactions) {
+      // Aggregate in/out per address for this tx
+      const incoming = new Map<string, number>();
+      const outgoing = new Map<string, number>();
+
       for (const out of tx.outputs) {
-        if (out.address && watchSet.has(out.address)) {
+        const addr = out.address;
+        if (!addr) continue;
+        if (!watchSet.has(addr)) continue;
+        incoming.set(addr, (incoming.get(addr) || 0) + out.valueBtc);
+      }
+      // Only available when resolveInputAddresses is true
+      for (const input of tx.inputs) {
+        const addr = input.address;
+        if (!addr || !input.valueBtc) continue;
+        if (!watchSet.has(addr)) continue;
+        outgoing.set(addr, (outgoing.get(addr) || 0) + input.valueBtc);
+      }
+
+      // Emit net activities per address for this tx
+      const addresses = new Set<string>([...incoming.keys(), ...outgoing.keys()]);
+      for (const addr of addresses) {
+        const inSum = incoming.get(addr) || 0;
+        const outSum = outgoing.get(addr) || 0;
+        if (inSum > 0 && outSum > 0) {
+          const net = inSum - outSum;
+          if (Math.abs(net) > 0) {
+            activities.push({
+              address: addr,
+              label: watchSet.get(addr),
+              txid: tx.txid,
+              direction: net >= 0 ? "in" : "out",
+              valueBtc: Math.abs(net),
+            });
+          }
+        } else if (inSum > 0) {
           activities.push({
-            address: out.address,
-            label: watchSet.get(out.address),
+            address: addr,
+            label: watchSet.get(addr),
             txid: tx.txid,
             direction: "in",
-            valueBtc: out.valueBtc,
+            valueBtc: inSum,
           });
-        }
-      }
-      for (const input of tx.inputs) {
-        if (input.address && watchSet.has(input.address) && input.valueBtc) {
+        } else if (outSum > 0) {
           activities.push({
-            address: input.address,
-            label: watchSet.get(input.address),
+            address: addr,
+            label: watchSet.get(addr),
             txid: tx.txid,
             direction: "out",
-            valueBtc: input.valueBtc,
+            valueBtc: outSum,
           });
         }
       }
@@ -87,11 +145,35 @@ export class BitcoinService implements BlockchainService {
     const parsed: ParsedTransaction[] = [];
     for (const tx of rawTxs) {
       const outputs = (tx.vout as any[]).map((vout) => {
-        const addresses: string[] | undefined = vout.scriptPubKey?.addresses;
-        const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : vout.scriptPubKey?.address;
+        const spk = vout.scriptPubKey || {};
+        const addresses: string[] | undefined = spk.addresses;
+        const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : spk.address;
+        const scriptType: string | undefined = typeof spk.type === "string" ? spk.type : undefined;
+        // Extract OP_RETURN data when present via asm pattern
+        let opReturnDataHex: string | undefined;
+        let opReturnUtf8: string | undefined;
+        const asm: string | undefined = typeof spk.asm === "string" ? spk.asm : undefined;
+        if (scriptType === "nulldata" && asm) {
+          const parts = asm.split(/\s+/);
+          const dataHex = parts.length >= 2 && parts[0] === "OP_RETURN" ? parts[1] : undefined;
+          if (dataHex && /^[0-9a-fA-F]+$/.test(dataHex)) {
+            opReturnDataHex = dataHex.toLowerCase();
+            try {
+              const bytes = Buffer.from(opReturnDataHex, "hex");
+              const text = new TextDecoder().decode(bytes);
+              const printable = /[\x09\x0A\x0D\x20-\x7E]/.test(text);
+              opReturnUtf8 = printable ? text : undefined;
+            } catch {
+              // ignore decoding errors
+            }
+          }
+        }
         return {
           address: addr,
           valueBtc: Number(vout.value),
+          scriptType,
+          opReturnDataHex,
+          opReturnUtf8,
         };
       });
 

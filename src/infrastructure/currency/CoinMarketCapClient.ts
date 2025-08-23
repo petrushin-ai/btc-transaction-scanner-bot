@@ -1,4 +1,5 @@
-import type { CurrencyCode, ExchangeRate } from "@/domain/currency";
+import type { CurrencyCode, ExchangeRate } from "@/types/currency";
+import type { HealthResult } from "@/types/health";
 
 export type CoinMarketCapClientOptions = {
   apiKey: string;
@@ -7,7 +8,7 @@ export type CoinMarketCapClientOptions = {
 };
 
 function isCrypto(code: string): boolean {
-  // Runtime guard for our current domain set
+  // Runtime guard for our current types set
   return code === "BTC" || code === "USDT";
 }
 
@@ -24,6 +25,54 @@ export class CoinMarketCapClient {
     this.apiKey = opts.apiKey;
     this.baseUrl = (opts.baseUrl || "https://pro-api.coinmarketcap.com").replace(/\/$/, "");
     this.timeoutMs = opts.timeoutMs ?? 5000;
+  }
+
+  /** Lightweight health-check. Prefer /v1/key/info to validate API key and connectivity.
+   * Falls back to a minimal map call if key/info is unavailable on custom baseUrl.
+   */
+  async ping(): Promise<HealthResult> {
+    const started = Date.now();
+    try {
+      const info = await this.fetchKeyInfo();
+      const latencyMs = Date.now() - started;
+      return {
+        provider: "coinmarketcap",
+        ok: true,
+        status: "ok",
+        latencyMs,
+        checkedAt: new Date().toISOString(),
+        details: {
+          plan: info.plan,
+          usage: info.usage,
+          credits_left: info.credits_left,
+        },
+      };
+    } catch (err) {
+      // Fallback to a very small public call that still requires the API key
+      try {
+        const started2 = Date.now();
+        await this.fetchMap();
+        const latencyMs = Date.now() - started2;
+        return {
+          provider: "coinmarketcap",
+          ok: true,
+          status: "ok",
+          latencyMs,
+          checkedAt: new Date().toISOString(),
+        };
+      } catch (inner) {
+        const latencyMs = Date.now() - started;
+        const message = inner instanceof Error ? inner.message : String(inner);
+        return {
+          provider: "coinmarketcap",
+          ok: false,
+          status: "error",
+          latencyMs,
+          checkedAt: new Date().toISOString(),
+          details: { error: message },
+        };
+      }
+    }
   }
 
   async getExchangeRate(base: CurrencyCode, quote: CurrencyCode): Promise<ExchangeRate> {
@@ -52,7 +101,7 @@ export class CoinMarketCapClient {
       };
     }
     if (isFiat(base) && isFiat(quote)) {
-      // Only USD supported in domain; trivial case
+      // Only USD supported in types; trivial case
       if (base === quote) {
         return {
           base,
@@ -122,6 +171,58 @@ export class CoinMarketCapClient {
       }
       const time = q.last_updated || json?.status?.timestamp || new Date().toISOString();
       return { price: q.price, time };
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  private async fetchKeyInfo(): Promise<{ plan?: unknown; usage?: unknown; credits_left?: unknown }> {
+    const url = `${this.baseUrl}/v1/key/info`;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "X-CMC_PRO_API_KEY": this.apiKey,
+        },
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`CoinMarketCap key info failed: ${res.status} ${res.statusText} ${text}`.trim());
+      }
+      const json = (await res.json()) as any;
+      const data = json?.data ?? {};
+      return {
+        plan: data?.plan,
+        usage: data?.usage,
+        credits_left: data?.credit_limit_monthly_reset || data?.credits_left,
+      };
+    } finally {
+      clearTimeout(id);
+    }
+  }
+
+  private async fetchMap(): Promise<void> {
+    const url = `${this.baseUrl}/v1/cryptocurrency/map?limit=1`;
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const res = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+          "X-CMC_PRO_API_KEY": this.apiKey,
+        },
+        signal: controller.signal,
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`CoinMarketCap map failed: ${res.status} ${res.statusText} ${text}`.trim());
+      }
+      // success is sufficient; we do not parse
     } finally {
       clearTimeout(id);
     }

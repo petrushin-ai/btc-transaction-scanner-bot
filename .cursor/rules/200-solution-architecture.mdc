@@ -16,8 +16,8 @@ alwaysApply: false
 
 ## Folder structure (clean architecture)
 
-- `src/domain` – Pure domain models and ports
-  - `blockchain.ts` – `BlockchainService` interface, domain types
+- `src/types` – Pure types models and ports
+  - `blockchain.ts` – `BlockchainService` interface, types types
 - `src/application` – Use cases and service implementations that orchestrate infrastructure
   - `services/BitcoinService.ts` – Implements `BlockchainService` on top of RPC client
 - `src/infrastructure` – Adapters and external integrations

@@ -6,6 +6,12 @@ export type WatchedAddress = {
 export type ParsedTxOutput = {
   address?: string;
   valueBtc: number;
+  /** scriptPubKey.type from node (e.g., pubkeyhash, scripthash, witness_v0_keyhash, witness_v0_scripthash, nulldata, witness_v1_taproot) */
+  scriptType?: string;
+  /** For OP_RETURN (nulldata) outputs: raw hex payload without OP_RETURN opcode */
+  opReturnDataHex?: string;
+  /** Best-effort UTF-8 decoding of OP_RETURN data */
+  opReturnUtf8?: string;
 };
 
 export type ParsedTransaction = {
@@ -27,6 +33,8 @@ export type AddressActivity = {
   txid: string;
   direction: "in" | "out";
   valueBtc: number;
+  /** Optional precomputed USD equivalent for valueBtc */
+  valueUsd?: number;
 };
 
 export interface BlockchainService {

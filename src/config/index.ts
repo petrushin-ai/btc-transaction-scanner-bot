@@ -1,7 +1,6 @@
 import { loadEnvFiles } from "./env";
 import fs from "fs";
 import path from "path";
-import envSchema from "env-schema";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
 
@@ -42,13 +41,11 @@ export function loadConfig(): AppConfig {
     const schema = {
       type: "object",
       required: [
-        "BTC_RPC_API_URL", 
-        "COINMARKETCAP_BASE_URL",
-        "API_KEY_COINMARKETCAP"
+        "BTC_RPC_API_URL"
       ],
       additionalProperties: false,
       properties: {
-        API_KEY_COINMARKETCAP: { type: "string", minLength: 1 },
+        API_KEY_COINMARKETCAP: { type: "string" },
         BTC_RPC_API_URL: {
           type: "string",
           allOf: [

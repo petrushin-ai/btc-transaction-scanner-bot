@@ -6,13 +6,13 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "example:rates": "bun src/example/currencyRates.ts"
+    "example:rates": "bun src/example/currencyRates.ts",
+    "healthcheck": "bun src/example/healthcheck.ts"
   },
   "dependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "dotenv": "^16.4.5",
-    "env-schema": "^6.0.1",
     "pino": "^9.9.0",
     "pino-pretty": "^13.1.1"
   },
