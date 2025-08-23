@@ -17,7 +17,6 @@ export type AppConfig = {
   serviceName: string;
   logLevel: string;
   logPretty: boolean;
-  
   // coinmarketcap
   coinMarketCapBaseUrl: string;
   coinMarketCapApiKey: string;
@@ -89,7 +88,6 @@ export function loadConfig(): AppConfig {
             {type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""]},
           ],
         },
-        
       },
     } as const;
 
