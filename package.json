@@ -9,7 +9,8 @@
     "start": "bun src/index.ts",
     "example:rates": "bun src/example/currencyRates.ts",
     "healthcheck": "bun src/example/healthcheck.ts",
-    "fixtures:blocks": "bun tests/fetch-block-fixtures.ts",
+    "fixtures:get-blocks": "bun tests/fetch-block-fixtures.ts",
+    "fixtures:update-addresses": "bun tests/update-addresses-from-fixtures.ts",
     "test:compare": "bun tests/compare-raw-vs-verbose.ts"
   },
   "dependencies": {
