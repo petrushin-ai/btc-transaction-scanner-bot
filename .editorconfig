@@ -1,0 +1,25 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 2
+# For editors that display tabs, keep width consistent
+tab_width = 2
+
+[*.{ts,tsx}]
+# JetBrains IDEs specific settings
+ij_typescript_indent_size = 2
+ij_typescript_tab_size = 2
+ij_typescript_continuation_indent_size = 2
+
+[*.{js,jsx}]
+ij_javascript_indent_size = 2
+ij_javascript_tab_size = 2
+ij_javascript_continuation_indent_size = 2
+
+[*.md]
+max_line_length = off
+trim_trailing_whitespace = false

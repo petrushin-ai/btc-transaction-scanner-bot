@@ -15,7 +15,8 @@ export function loadEnvFiles(cwd: string = process.cwd()): void {
   const envFromProcess = process.env.NODE_ENV || process.env.APP_ENV || "development";
   const env = envFromProcess.trim();
 
-  // Find the nearest project root (directory containing package.json or any .env*) starting from cwd and walking up
+  // Find the nearest project root (directory containing package.json or any .env*)
+  // starting from cwd and walking up
   function findBaseDir(startDir: string): string {
     let current = startDir;
     while (true) {
@@ -44,7 +45,7 @@ export function loadEnvFiles(cwd: string = process.cwd()): void {
   for (const p of candidates) {
     if (!fileExists(p)) continue;
     // Do not override existing process env variables; external env takes precedence
-    dotenv.config({ path: p, override: false });
+    dotenv.config({path: p, override: false});
   }
 }
 

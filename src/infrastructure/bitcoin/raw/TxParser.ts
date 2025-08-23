@@ -1,11 +1,23 @@
-import type { Network } from "./Address";
-import { btcFromSats, ByteReader, sha256d, toHexLE } from "./ByteReader";
-import { decodeScriptPubKey } from "./Script";
+import type {Network} from "./Address";
+import {btcFromSats, ByteReader, sha256d, toHexLE} from "./ByteReader";
+import {decodeScriptPubKey} from "./Script";
 
 export type ParsedTx = {
   txid: string;
-  inputs: { prevTxId: string; prevVout: number; scriptSig: string; sequence: number; witness?: string[] }[];
-  outputs: { valueBtc: number; scriptPubKeyHex: string; address?: string; scriptType?: string; opReturnDataHex?: string }[];
+  inputs: {
+    prevTxId: string;
+    prevVout: number;
+    scriptSig: string;
+    sequence: number;
+    witness?: string[]
+  }[];
+  outputs: {
+    valueBtc: number;
+    scriptPubKeyHex: string;
+    address?: string;
+    scriptType?: string;
+    opReturnDataHex?: string
+  }[];
 };
 
 export function parseTransaction(reader: ByteReader, network: Network): ParsedTx {
@@ -35,7 +47,12 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     const scriptLen = reader.readVarInt();
     const script = reader.readSlice(scriptLen);
     const sequence = reader.readUInt32LE();
-    inputs.push({ prevTxId: toHexLE(prevHashLE), prevVout, scriptSig: script.toString("hex"), sequence });
+    inputs.push({
+      prevTxId: toHexLE(prevHashLE),
+      prevVout,
+      scriptSig: script.toString("hex"),
+      sequence
+    });
   }
 
   const voutCount = reader.readVarInt();
@@ -68,7 +85,7 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     }
   }
 
-  const locktime = reader.readUInt32LE();
+  // const locktime = reader.readUInt32LE();
   const locktimeStart = reader.position - 4;
 
   // Compute txid excluding witness per BIP-0141
@@ -82,7 +99,7 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     for (let i = 0; i < inputs.length; i++) inputs[i].witness = witnesses[i];
   }
 
-  return { txid, inputs, outputs };
+  return {txid, inputs, outputs};
 }
 
 

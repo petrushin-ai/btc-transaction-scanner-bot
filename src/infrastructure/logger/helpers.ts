@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import pino from "pino";
-import { Writable } from "stream";
+import {Writable} from "stream";
 
 export type LoggingEnv = {
   environment: string;
@@ -17,7 +17,7 @@ export function getLoggingEnv(): LoggingEnv {
   const logLevel = process.env.LOG_LEVEL || defaultLevel;
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toLowerCase() === "true";
-  return { environment, serviceName, logLevel, logPretty };
+  return {environment, serviceName, logLevel, logPretty};
 }
 
 export function fileExists(filePath: string): boolean {
@@ -41,13 +41,15 @@ export function findProjectRoot(startDir: string): string {
 
 export function ensureFile(filePath: string, initialContent = ""): void {
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  } catch {}
+    fs.mkdirSync(path.dirname(filePath), {recursive: true});
+  } catch {
+  }
   try {
     if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, initialContent, { encoding: "utf-8", flag: "wx" });
+      fs.writeFileSync(filePath, initialContent, {encoding: "utf-8", flag: "wx"});
     }
-  } catch {}
+  } catch {
+  }
 }
 
 export function normalizeJsonFileName(rawName: string): string {
@@ -75,20 +77,20 @@ export function normalizeLogFileName(rawName: string, ndjson: boolean): string {
 }
 
 export function createFileDestination(filePath: string, isSync: boolean): pino.DestinationStream {
-  return pino.destination({ dest: filePath, sync: isSync });
+  return pino.destination({dest: filePath, sync: isSync});
 }
 
 export function buildStdoutStream(logPretty: boolean): pino.DestinationStream {
   if (logPretty) {
-    // Lazy require to avoid importing pretty in environments where it's not desired
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const pinoPretty = require("pino-pretty");
-    return pinoPretty({
-      colorize: true,
-      translateTime: "SYS:standard",
-      singleLine: false,
-      messageKey: "msg",
-      ignore: "pid,hostname",
+    return pino.transport({
+      target: "pino-pretty",
+      options: {
+        colorize: true,
+        translateTime: "SYS:standard",
+        singleLine: false,
+        messageKey: "msg",
+        ignore: "pid,hostname",
+      },
     });
   }
   return pino.destination(1);
@@ -114,7 +116,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     if (stat.size === 0) {
       const init = Buffer.from("[]\n", "utf-8");
       fs.writeSync(fd, init, 0, init.length, 0);
-      return { insertPos: 1, hasItems: false }; // position of ']'
+      return {insertPos: 1, hasItems: false}; // position of ']'
     }
 
     // Read a small tail window to locate the last closing bracket
@@ -129,7 +131,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
       fs.ftruncateSync(fd, 0);
       const init = Buffer.from("[]\n", "utf-8");
       fs.writeSync(fd, init, 0, init.length, 0);
-      return { insertPos: 1, hasItems: false };
+      return {insertPos: 1, hasItems: false};
     }
 
     // Find char before the closing bracket to detect emptiness
@@ -137,9 +139,9 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     while (j >= 0 && /\s/.test(String.fromCharCode(tail[j]))) j--;
     const hasItems = j >= 0 && tail[j] !== "[".charCodeAt(0);
 
-    // Compute absolute file position of the closing bracket we will overwrite
+    // Compute the absolute file position of the closing bracket we will overwrite
     const bracketPos = (stat.size - readSize) + idx;
-    return { insertPos: bracketPos, hasItems };
+    return {insertPos: bracketPos, hasItems};
   }
 
   let state = initializeArrayIfNeeded();
@@ -149,11 +151,18 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     write(chunk, _enc, callback) {
       try {
         // Normalize to string, trim trailing newlines
-        const asString = (Buffer.isBuffer(chunk) ? chunk.toString("utf-8") : String(chunk)).replace(/[\r\n]+$/g, "");
-        if (!asString) { callback(); return; }
+        const asString = (
+          Buffer.isBuffer(chunk)
+            ? chunk.toString("utf-8")
+            : String(chunk))
+          .replace(/[\r\n]+$/g, "");
+        if (!asString) {
+          callback();
+          return;
+        }
 
         const prefix = state.hasItems ? ",\n" : "\n";
-        const payload = Buffer.from(prefix + asString + "\n]", "utf-8");
+        const payload = Buffer.from(`${prefix}${asString}\n]`, "utf-8");
         fs.writeSync(fd, payload, 0, payload.length, state.insertPos);
         // Update insert position: we added payload minus the trailing ']' that stays at the end
         state = {
@@ -168,14 +177,14 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     final(callback) {
       try {
         fs.closeSync(fd);
-      } catch {}
+      } catch {
+      }
       callback();
     }
   }) as unknown as pino.DestinationStream;
 
   return stream;
 }
-
 
 
 /**

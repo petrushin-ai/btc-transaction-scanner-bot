@@ -1,11 +1,15 @@
-import { logHealthResult } from "@/application/helpers/healthcheck";
-import type { HealthResult } from "@/types/healthcheck";
+import {logHealthResult} from "@/application/helpers/healthcheck";
+import type {HealthResult} from "@/types/healthcheck";
 
-import { BitcoinService } from "./BitcoinService";
-import { CurrencyService } from "./CurrencyService";
+import {BitcoinService} from "./BitcoinService";
+import {CurrencyService} from "./CurrencyService";
 
 export class HealthCheckService {
-  async runStartupChecks(bitcoin: BitcoinService, currency: CurrencyService, verbose: boolean = false): Promise<HealthResult[]> {
+  async runStartupChecks(
+    bitcoin: BitcoinService,
+    currency: CurrencyService,
+    verbose: boolean = false
+  ): Promise<HealthResult[]> {
     await bitcoin.connect();
 
     const [btcHealth, curHealth] = await Promise.all([
@@ -14,7 +18,14 @@ export class HealthCheckService {
           return await bitcoin.ping();
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          return { provider: "bitcoin-rpc", ok: false, status: "error", latencyMs: 0, checkedAt: new Date().toISOString(), details: { error: message } } as HealthResult;
+          return {
+            provider: "bitcoin-rpc",
+            ok: false,
+            status: "error",
+            latencyMs: 0,
+            checkedAt: new Date().toISOString(),
+            details: {error: message}
+          } as HealthResult;
         }
       })(),
       (async () => {
@@ -22,7 +33,14 @@ export class HealthCheckService {
           return await currency.ping();
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
-          return { provider: "coinmarketcap", ok: false, status: "error", latencyMs: 0, checkedAt: new Date().toISOString(), details: { error: message } } as HealthResult;
+          return {
+            provider: "coinmarketcap",
+            ok: false,
+            status: "error",
+            latencyMs: 0,
+            checkedAt: new Date().toISOString(),
+            details: {error: message}
+          } as HealthResult;
         }
       })(),
     ]);

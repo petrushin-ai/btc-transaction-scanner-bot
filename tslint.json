@@ -29,20 +29,40 @@
     "no-bitwise": false,
     "max-line-length": {
       "severity": "warning",
-      "options": [100]
+      "options": [
+        100
+      ]
     },
     "quotemark": false,
-    "semicolon": [true, "always"],
-    "ordered-imports": [true, {
-      "import-sources-order": "case-insensitive",
-      "named-imports-order": "case-insensitive",
-      "grouped-imports": true,
-      "groups": [
-        { "name": "external", "match": "^(?:@[^/].*|[a-z0-9].*)", "order": 1 },
-        { "name": "internal", "match": "^@/.*", "order": 2 },
-        { "name": "relative", "match": "^\\.", "order": 3 }
-      ]
-    }],
+    "semicolon": [
+      true,
+      "always"
+    ],
+    "ordered-imports": [
+      true,
+      {
+        "import-sources-order": "case-insensitive",
+        "named-imports-order": "case-insensitive",
+        "grouped-imports": true,
+        "groups": [
+          {
+            "name": "external",
+            "match": "^(?:@[^/].*|[a-z0-9].*)",
+            "order": 1
+          },
+          {
+            "name": "internal",
+            "match": "^@/.*",
+            "order": 2
+          },
+          {
+            "name": "relative",
+            "match": "^\\.",
+            "order": 3
+          }
+        ]
+      }
+    ],
     "typedef": false,
     "no-any": false,
     "no-shadowed-variable": false,
@@ -51,17 +71,29 @@
     "ban-types": false,
     "array-type": false,
     "no-string-literal": false,
-    "variable-name": [true, "check-format", "allow-leading-underscore", "ban-keywords"],
+    "variable-name": [
+      true,
+      "check-format",
+      "allow-leading-underscore",
+      "ban-keywords"
+    ],
     "object-literal-sort-keys": false,
-    "interface-name": false
-    ,
+    "interface-name": false,
+    "indent": [
+      true,
+      "spaces",
+      2
+    ],
     "await-promise": true,
     "no-floating-promises": true,
     "no-var-requires": true,
     "no-require-imports": true,
     "prefer-template": true,
-    "triple-equals": [true, "allow-null-check"],
-    "no-duplicate-imports": true,
+    "triple-equals": [
+      true,
+      "allow-null-check"
+    ],
+    "no-duplicate-imports": false,
     "object-literal-shorthand": true,
     "no-unnecessary-initializer": true
   },

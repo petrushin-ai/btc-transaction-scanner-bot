@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import {createHash} from "crypto";
 
 const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 
@@ -12,7 +12,7 @@ export function base58checkEncode(version: number, payload: Buffer): string {
 }
 
 function base58Encode(buffer: Buffer): string {
-  let x = BigInt("0x" + buffer.toString("hex"));
+  let x = BigInt(`0x${buffer.toString("hex")}`);
   const base = 58n;
   let s = "";
   while (x > 0n) {
@@ -21,7 +21,7 @@ function base58Encode(buffer: Buffer): string {
     x = x / base;
   }
   // preserve leading zero bytes as '1'
-  for (let i = 0; i < buffer.length && buffer[i] === 0; i++) s = "1" + s;
+  for (let i = 0; i < buffer.length && buffer[i] === 0; i++) s = `1${s}`;
   return s || "1";
 }
 
@@ -68,7 +68,7 @@ function bech32CreateChecksum(hrp: string, data: number[], spec: "bech32" | "bec
 function bech32Encode(hrp: string, data: number[], spec: "bech32" | "bech32m"): string {
   const checksum = bech32CreateChecksum(hrp, data, spec);
   const combined = [...data, ...checksum];
-  let out = hrp + "1";
+  let out = `${hrp}1`;
   for (const c of combined) out += BECH32_CHARSET[c];
   return out;
 }
@@ -97,22 +97,30 @@ function convertBits(data: Uint8Array, from: number, to: number, pad: boolean): 
   return ret;
 }
 
-export function encodeWitnessAddress(hrp: string, witnessVersion: number, witnessProgram: Buffer): string {
+export function encodeWitnessAddress(
+  hrp: string,
+  witnessVersion: number,
+  witnessProgram: Buffer
+): string {
   const spec = witnessVersion === 0 ? "bech32" : "bech32m";
   const data: number[] = [witnessVersion];
   const prog5 = convertBits(witnessProgram, 8, 5, true);
   return bech32Encode(hrp, [...data, ...prog5], spec);
 }
 
-export function getAddressVersionsForNetwork(network: Network): { p2pkh: number; p2sh: number; hrp: string } {
+export function getAddressVersionsForNetwork(network: Network): {
+  p2pkh: number;
+  p2sh: number;
+  hrp: string
+} {
   switch (network) {
     case "mainnet":
-      return { p2pkh: 0x00, p2sh: 0x05, hrp: "bc" };
+      return {p2pkh: 0x00, p2sh: 0x05, hrp: "bc"};
     case "testnet":
     case "signet":
-      return { p2pkh: 0x6f, p2sh: 0xc4, hrp: "tb" };
+      return {p2pkh: 0x6f, p2sh: 0xc4, hrp: "tb"};
     case "regtest":
-      return { p2pkh: 0x6f, p2sh: 0xc4, hrp: "bcrt" };
+      return {p2pkh: 0x6f, p2sh: 0xc4, hrp: "bcrt"};
   }
 }
 

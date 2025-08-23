@@ -1,11 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import {fileURLToPath} from "url";
 
-import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import type { CurrencyRateProvider } from "@/types/currency";
-import type { CurrencyCode, ExchangeRate } from "@/types/currency";
-import type { HealthResult } from "@/types/healthcheck";
+import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
+import type {CurrencyCode, CurrencyRateProvider, ExchangeRate} from "@/types/currency";
+import type {HealthResult} from "@/types/healthcheck";
 
 export type CurrencyServiceOptions = {
   defaultBase?: CurrencyCode; // e.g. BTC
@@ -29,7 +28,9 @@ export class CurrencyService implements CurrencyRateProvider {
     this.defaultQuote = opts?.defaultQuote;
     const projectRoot = this.resolveProjectRoot();
     this.cacheFilePath = opts?.cacheFilePath || path.join(projectRoot, "cache", "currency_rates.json");
-    const envValiditySeconds = Number((process.env.CUR_CACHE_VALIDITY_PERIOD || "3600").toString().trim());
+    const envValiditySeconds = Number((
+      process.env.CUR_CACHE_VALIDITY_PERIOD || "3600"
+    ).toString().trim());
     this.cacheValiditySeconds = Number.isFinite(opts?.cacheValiditySeconds || NaN)
       ? (opts!.cacheValiditySeconds as number)
       : (Number.isFinite(envValiditySeconds) && envValiditySeconds > 0 ? envValiditySeconds : 3600);
@@ -58,14 +59,14 @@ export class CurrencyService implements CurrencyRateProvider {
   private ensureCacheDirectory(): void {
     const dir = path.dirname(this.cacheFilePath);
     try {
-      fs.mkdirSync(dir, { recursive: true });
+      fs.mkdirSync(dir, {recursive: true});
     } catch {
       // ignore mkdir errors; next fs ops will throw if truly inaccessible
     }
     // Ensure cache file exists so subsequent reads/writes work seamlessly
     try {
       if (!fs.existsSync(this.cacheFilePath)) {
-        fs.writeFileSync(this.cacheFilePath, "{}", { encoding: "utf-8", flag: "wx" });
+        fs.writeFileSync(this.cacheFilePath, "{}", {encoding: "utf-8", flag: "wx"});
       }
     } catch {
       // ignore creation errors; subsequent fs ops will surface real issues
@@ -148,7 +149,7 @@ export class CurrencyService implements CurrencyRateProvider {
     if (!cache[providerKey] || typeof cache[providerKey] !== "object") {
       cache[providerKey] = {};
     }
-    cache[providerKey][key] = { ...rate, cachedAt: new Date().toISOString() };
+    cache[providerKey][key] = {...rate, cachedAt: new Date().toISOString()};
     this.writeCache(cache);
   }
 }

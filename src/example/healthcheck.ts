@@ -1,15 +1,15 @@
-import { BitcoinService, CurrencyService } from "@/application/services";
-import { loadConfig } from "@/config";
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
-import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import { logger as getLogger } from "@/infrastructure/logger";
+import {BitcoinService, CurrencyService} from "@/application/services";
+import {loadConfig} from "@/config";
+import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
+import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
+import {logger as getLogger} from "@/infrastructure/logger";
 
-const logger = getLogger({ fileName: "healthcheck" });
+const logger = getLogger({fileName: "healthcheck"});
 
 async function main() {
   const cfg = loadConfig();
 
-  const rpc = new BitcoinRpcClient({ url: cfg.bitcoinRpcUrl });
+  const rpc = new BitcoinRpcClient({url: cfg.bitcoinRpcUrl});
   const btc = new BitcoinService(rpc, {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
@@ -28,7 +28,14 @@ async function main() {
         return await btc.ping();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        return { provider: "bitcoin-rpc", ok: false, status: "error", latencyMs: 0, checkedAt: new Date().toISOString(), details: { error: message } } as const;
+        return {
+          provider: "bitcoin-rpc",
+          ok: false,
+          status: "error",
+          latencyMs: 0,
+          checkedAt: new Date().toISOString(),
+          details: {error: message}
+        } as const;
       }
     })(),
     (async () => {
@@ -36,13 +43,34 @@ async function main() {
         return await currency.ping();
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        return { provider: "coinmarketcap", ok: false, status: "error", latencyMs: 0, checkedAt: new Date().toISOString(), details: { error: message } } as const;
+        return {
+          provider: "coinmarketcap",
+          ok: false,
+          status: "error",
+          latencyMs: 0,
+          checkedAt: new Date().toISOString(),
+          details: {error: message}
+        } as const;
       }
     })(),
   ]);
 
-  logger.info({ type: "health", provider: btcHealth.provider, status: btcHealth.status, ok: btcHealth.ok, latencyMs: btcHealth.latencyMs, details: btcHealth.details });
-  logger.info({ type: "health", provider: curHealth.provider, status: curHealth.status, ok: curHealth.ok, latencyMs: curHealth.latencyMs, details: curHealth.details });
+  logger.info({
+    type: "health",
+    provider: btcHealth.provider,
+    status: btcHealth.status,
+    ok: btcHealth.ok,
+    latencyMs: btcHealth.latencyMs,
+    details: btcHealth.details
+  });
+  logger.info({
+    type: "health",
+    provider: curHealth.provider,
+    status: curHealth.status,
+    ok: curHealth.ok,
+    latencyMs: curHealth.latencyMs,
+    details: curHealth.details
+  });
 
   if (!btcHealth.ok || !curHealth.ok) {
     process.exitCode = 2;
@@ -52,7 +80,7 @@ async function main() {
 if (import.meta.main) {
   main().catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(JSON.stringify({ type: "health", msg: `Healthcheck failed: ${message}` }));
+    console.error(JSON.stringify({type: "health", msg: `Healthcheck failed: ${message}`}));
     process.exit(2);
   });
 }

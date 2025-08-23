@@ -6,7 +6,11 @@ import {parseRawBlock} from "@/infrastructure/bitcoin/raw/BlockParser";
 
 type AddressEntry = { address: string; label?: string };
 
-function listFixturePairs(fixturesDir: string): { base: string; currentRaw: string; prevRaw: string }[] {
+function listFixturePairs(fixturesDir: string): {
+    base: string;
+    currentRaw: string;
+    prevRaw: string
+}[] {
     const entries = fs.readdirSync(fixturesDir);
     const bases = new Map<string, { current?: string; prev?: string }>();
     for (const name of entries) {
@@ -44,11 +48,16 @@ function extractAddressesFromBlockHex(hex: string, network: Network): {
     outputs: { address?: string }[]
 } {
     const block = parseRawBlock(hex, network);
-    const outputs = block.transactions.flatMap((tx) => tx.outputs.map((o) => ({address: o.address})));
+    const outputs = block.transactions
+        .flatMap((tx) => tx.outputs.map((o) => ({address: o.address})));
     return {txCount: block.transactions.length, outputs};
 }
 
-function upsertAddresses(target: AddressEntry[], candidates: string[], limit: number): AddressEntry[] {
+function upsertAddresses(
+    target: AddressEntry[],
+    candidates: string[],
+    limit: number
+): AddressEntry[] {
     const existing = new Map(target.map((e) => [e.address, e] as const));
     let added = 0;
     for (const addr of candidates) {
@@ -122,7 +131,7 @@ async function main() {
 
     // Write back atomically
     const tmp = `${addressesPath}.tmp`;
-    await fs.promises.writeFile(tmp, JSON.stringify(updated, null, 2) + "\n");
+    await fs.promises.writeFile(tmp, `${JSON.stringify(updated, null, 2)}\n`);
     await fs.promises.rename(tmp, addressesPath);
 
     console.log(

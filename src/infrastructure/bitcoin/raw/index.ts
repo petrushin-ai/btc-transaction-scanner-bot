@@ -6,3 +6,4 @@ export { getAddressVersionsForNetwork } from "./Address";
 export { decodeScriptPubKey, type ScriptType } from "./Script";
 
 
+

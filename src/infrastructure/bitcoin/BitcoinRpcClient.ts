@@ -47,7 +47,7 @@ export class BitcoinRpcClient {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          ...(this.authHeader ? { authorization: this.authHeader } : {}),
+          ...(this.authHeader ? {authorization: this.authHeader} : {}),
         },
         body: JSON.stringify(body),
         signal: controller.signal,
@@ -77,7 +77,8 @@ export class BitcoinRpcClient {
     return this.call("getblockhash", [height]);
   }
 
-  // verbosity = 2 returns transactions with decoded vin/vout but not previous vout addresses unless txindex is enabled for inputs
+  // verbosity = 2 returns transactions with decoded vin/vout but not previous vout addresses
+  // unless txindex is enabled for inputs
   getBlockByHashVerbose2(blockHash: string): Promise<unknown> {
     return this.call("getblock", [blockHash, 2]);
   }
@@ -87,18 +88,19 @@ export class BitcoinRpcClient {
     return this.call("getblock", [blockHash, 0]);
   }
 
-  // Return block header (to map hash -> height and time efficiently when parsing raw blocks)
+  // Return the block header (to map hash -> height and time efficiently when parsing raw blocks)
   getBlockHeader(blockHash: string): Promise<{ height: number; time: number }> {
     return this.call("getblockheader", [blockHash, true]);
   }
 
-  // Fetch previous transaction to resolve input addresses; requires -txindex on node for historical lookups
+  // Fetch previous transaction to resolve input addresses; requires -txindex on node
+  // for historical lookups
   getRawTransactionVerbose(txid: string): Promise<unknown> {
     return this.call("getrawtransaction", [txid, true]);
   }
 
-  getBlockchainNetwork(): Promise<{ chain: string }> {
-    return this.call("getblockchaininfo").then((x: any) => ({ chain: String(x.chain) }));
-  }
+  // getBlockchainNetwork(): Promise<{ chain: string }> {
+  //   return this.call("getblockchaininfo").then((x: any) => ({chain: String(x.chain)}));
+  // }
 }
 

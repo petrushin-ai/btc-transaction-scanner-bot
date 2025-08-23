@@ -14,7 +14,10 @@ export async function getUsdRate(currency: CurrencyService): Promise<number> {
     }
 }
 
-export function mapActivitiesWithUsd(activities: AddressActivity[], btcToUsdRate: number): AddressActivity[] {
+export function mapActivitiesWithUsd(
+    activities: AddressActivity[],
+    btcToUsdRate: number
+): AddressActivity[] {
     if (!(btcToUsdRate > 0)) return activities;
     return activities.map((activity) => ({
         ...activity,

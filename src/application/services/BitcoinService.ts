@@ -1,13 +1,14 @@
-import { BitcoinRpcClient, Raw } from "@/infrastructure/bitcoin";
-import type { HealthResult } from "@/types/healthcheck";
-
+import {BitcoinRpcClient, Raw} from "@/infrastructure/bitcoin";
+import type {AppLogger} from "@/infrastructure/logger";
+import {logger} from "@/infrastructure/logger";
 import type {
   AddressActivity,
   BlockchainService,
   ParsedBlock,
   ParsedTransaction,
   WatchedAddress,
-} from "../../types/blockchain";
+} from "@/types/blockchain";
+import type {HealthResult} from "@/types/healthcheck";
 
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
@@ -23,6 +24,7 @@ export class BitcoinService implements BlockchainService {
   private parseRawBlocks: boolean;
   private network: Raw.Network = "mainnet";
   private verbose: boolean = false;
+  private log: AppLogger;
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
@@ -30,6 +32,7 @@ export class BitcoinService implements BlockchainService {
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
     this.parseRawBlocks = opts?.parseRawBlocks ?? false;
     this.verbose = opts?.verbose ?? false;
+    this.log = logger("bitcoin-service");
   }
 
   async connect(): Promise<void> {
@@ -53,7 +56,7 @@ export class BitcoinService implements BlockchainService {
         status: "ok",
         latencyMs,
         checkedAt: new Date().toISOString(),
-        details: { chain: info.chain, blocks: info.blocks },
+        details: {chain: info.chain, blocks: info.blocks},
       };
     } catch (err) {
       const latencyMs = Date.now() - started;
@@ -64,33 +67,37 @@ export class BitcoinService implements BlockchainService {
         status: "error",
         latencyMs,
         checkedAt: new Date().toISOString(),
-        details: { error: message },
+        details: {error: message},
       };
     }
   }
 
   async awaitNewBlock(sinceHeight?: number): Promise<ParsedBlock> {
-    const startHeight = sinceHeight ?? (await this.rpc.getBlockCount());
-    let current: number = startHeight;
+    let current: number = sinceHeight ?? (await this.rpc.getBlockCount());
     const pollStartedAt = Date.now();
     const initialLatest = await this.rpc.getBlockCount();
     if (this.verbose) {
       // Basic poll loop stats
       const delta = initialLatest - current;
-      console.log(JSON.stringify({ type: "poll.start", startHeight: current, latestHeight: initialLatest, behindBlocks: delta }));
+      this.log.debug({
+        type: "poll.start",
+        startHeight: current,
+        latestHeight: initialLatest,
+        behindBlocks: delta,
+      });
     }
-    for (;;) {
+    for (; ;) {
       await this.sleep(this.pollIntervalMs);
       const latest = await this.rpc.getBlockCount();
       if (this.verbose) {
         const waitedMs = Date.now() - pollStartedAt;
-        console.log(JSON.stringify({ type: "poll.tick", heightChecked: latest, waitedMs }));
+        this.log.debug({type: "poll.tick", heightChecked: latest, waitedMs});
       }
       if (latest > current) {
         const hash = await this.rpc.getBlockHash(latest);
         if (this.verbose) {
           const waitedMs = Date.now() - pollStartedAt;
-          console.log(JSON.stringify({ type: "poll.new_block", newHeight: latest, waitedMs }));
+          this.log.debug({type: "poll.new_block", newHeight: latest, waitedMs});
         }
         return this.parseBlockByHash(hash);
       }
@@ -100,13 +107,12 @@ export class BitcoinService implements BlockchainService {
   async parseBlockByHash(blockHash: string): Promise<ParsedBlock> {
     if (!this.parseRawBlocks) {
       const block = (await this.rpc.getBlockByHashVerbose2(blockHash)) as any;
-      const parsed: ParsedBlock = {
+      return {
         hash: block.hash,
         height: block.height,
         time: block.time,
         transactions: await this.parseTransactions(block.tx),
       };
-      return parsed;
     }
     // Raw path
     const [hex, header] = await Promise.all([
@@ -144,8 +150,9 @@ export class BitcoinService implements BlockchainService {
             const prev = (await this.rpc.getRawTransactionVerbose(vin.prevTxId)) as any;
             const prevOut = prev.vout?.[vin.prevVout];
             const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-            const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-            inputs.push({ address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined });
+            const addr: string | undefined =
+              Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
+            inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
           } catch {
             inputs.push({});
           }
@@ -269,8 +276,9 @@ export class BitcoinService implements BlockchainService {
             const prev = (await this.rpc.getRawTransactionVerbose(vin.txid)) as any;
             const prevOut = prev.vout?.[vin.vout];
             const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-            const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-            inputs.push({ address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined });
+            const addr: string | undefined = Array
+              .isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
+            inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
           } catch {
             inputs.push({});
           }
