@@ -24,7 +24,7 @@ Raw Data Processing Requirements
 
 1. Direct Block Processing: implement custom parsing of raw Bitcoin blocks
 2. Transaction Analysis:
-a. Implement custom script interpretation for different transaction types Technical Assessment: Bitcoin Transaction Scanner 1
+a. Implement custom script interpretation for different transaction types 
 b. Handle different address formats (legacy, SegWit)
 c. Process and interpret OP_RETURN data when present
 
