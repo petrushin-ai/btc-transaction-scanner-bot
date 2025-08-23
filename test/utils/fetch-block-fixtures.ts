@@ -3,6 +3,7 @@ import path from "path";
 
 import {loadConfig} from "@/config";
 import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
+import { updateAddressesFromLatestFixture } from "./update-addresses-from-fixtures";
 
 async function ensureDir(dir: string): Promise<void> {
   await fs.promises.mkdir(dir, {recursive: true});
@@ -52,6 +53,9 @@ async function main() {
     await writeFileAtomic(outPath, f.data);
     console.log(`wrote ${outPath}`);
   }
+
+  // After fetching fixtures for current and previous blocks, update watched addresses
+  await updateAddressesFromLatestFixture({ maxPerCategory: 500 });
 }
 
 main().catch((err) => {

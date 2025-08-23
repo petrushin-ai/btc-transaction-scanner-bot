@@ -56,7 +56,8 @@ function extractAddressesFromBlockHex(hex: string, network: Network): {
 function upsertAddresses(
   target: AddressEntry[],
   candidates: string[],
-  limit: number
+  limit: number,
+  labelLookup?: Map<string, string | undefined>
 ): AddressEntry[] {
   const existing = new Map(target.map((e) => [e.address, e] as const));
   let added = 0;
@@ -64,15 +65,24 @@ function upsertAddresses(
     if (!addr) continue;
     if (added >= limit) break;
     if (!existing.has(addr)) {
-      target.push({address: addr});
-      existing.set(addr, {address: addr});
+      const label = labelLookup?.get(addr);
+      const entry: AddressEntry = label ? {address: addr, label} : {address: addr};
+      target.push(entry);
+      existing.set(addr, entry);
       added++;
+    } else if (labelLookup) {
+      // Enrich existing entry with label if missing
+      const entry = existing.get(addr)!;
+      if (!entry.label) {
+        const label = labelLookup.get(addr);
+        if (label) entry.label = label;
+      }
     }
   }
   return target;
 }
 
-async function main() {
+export async function updateAddressesFromLatestFixture(options?: { maxPerCategory?: number; addressesFile?: string }) {
   const cwd = process.cwd();
   const fixturesDir = path.join(cwd, "test", "fixtures");
   const pairs = listFixturePairs(fixturesDir);
@@ -113,7 +123,7 @@ async function main() {
   }
 
   // Load existing addresses.json
-  const addressesPath = path.join(cwd, "addresses.json");
+  const addressesPath = options?.addressesFile || path.join(cwd, "addresses.json");
   let existing: AddressEntry[] = [];
   try {
     const raw = fs.readFileSync(addressesPath, "utf8");
@@ -123,11 +133,14 @@ async function main() {
     existing = [];
   }
 
+  const labelLookup = new Map<string, string | undefined>(existing.map((e) => [e.address, e.label]));
+
   // Upsert up to 500 from each category
+  const maxPerCategory = options?.maxPerCategory ?? 500;
   let updated = existing.slice();
-  updated = upsertAddresses(updated, intersection, 500);
-  updated = upsertAddresses(updated, onlyPrev, 500);
-  updated = upsertAddresses(updated, onlyCurrent, 500);
+  updated = upsertAddresses(updated, intersection, maxPerCategory, labelLookup);
+  updated = upsertAddresses(updated, onlyPrev, maxPerCategory, labelLookup);
+  updated = upsertAddresses(updated, onlyCurrent, maxPerCategory, labelLookup);
 
   // Write back atomically
   const tmp = `${addressesPath}.tmp`;
@@ -147,6 +160,10 @@ async function main() {
       },
     })
   );
+}
+
+async function main() {
+  await updateAddressesFromLatestFixture();
 }
 
 main().catch((err) => {
