@@ -1,6 +1,6 @@
-import { ByteReader, btcFromSats, sha256d, toHexLE } from "./ByteReader";
-import { decodeScriptPubKey } from "./Script";
 import type { Network } from "./Address";
+import { btcFromSats, ByteReader, sha256d, toHexLE } from "./ByteReader";
+import { decodeScriptPubKey } from "./Script";
 
 export type ParsedTx = {
   txid: string;

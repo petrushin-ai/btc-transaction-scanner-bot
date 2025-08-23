@@ -1,5 +1,6 @@
-import type { HealthResult } from "@/types/healthcheck";
 import { logHealthResult } from "@/application/helpers/healthcheck";
+import type { HealthResult } from "@/types/healthcheck";
+
 import { BitcoinService } from "./BitcoinService";
 import { CurrencyService } from "./CurrencyService";
 

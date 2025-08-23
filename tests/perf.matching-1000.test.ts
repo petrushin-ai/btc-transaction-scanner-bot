@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
+
 import { BitcoinService } from "@/application/services/BitcoinService";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import type { WatchedAddress } from "@/types/blockchain";
+
 import { emitMetric } from "./_metrics";
 
 // Minimal dummy RPC to satisfy constructor; we won't call network in this test

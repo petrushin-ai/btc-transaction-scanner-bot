@@ -1,7 +1,8 @@
 import fs from "fs";
 import path from "path";
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+
 import { loadConfig } from "@/config";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 
 async function ensureDir(dir: string): Promise<void> {
   await fs.promises.mkdir(dir, { recursive: true });

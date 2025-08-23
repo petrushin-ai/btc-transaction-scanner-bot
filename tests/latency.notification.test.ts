@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+
 import { BitcoinService } from "@/application/services/BitcoinService";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import type { ParsedBlock } from "@/types/blockchain";
+
 import { emitMetric } from "./_metrics";
 
 // Mock RPC that simulates a new block appearing after a short delay

@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
+
 import { Raw } from "@/infrastructure/bitcoin";
+
 import { emitMetric, memoryUsageMb } from "./_metrics";
 
 function readHex(filePath: string): string {

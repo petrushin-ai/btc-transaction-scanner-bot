@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+
 import { Raw } from "@/infrastructure/bitcoin";
 import type { ParsedRawBlock } from "@/infrastructure/bitcoin/raw/BlockParser";
 import type { ParsedTx } from "@/infrastructure/bitcoin/raw/TxParser";

@@ -1,10 +1,11 @@
-import type { CurrencyRateProvider } from "@/types/currency";
-import type { CurrencyCode, ExchangeRate } from "@/types/currency";
-import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import type { HealthResult } from "@/types/healthcheck";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+
+import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
+import type { CurrencyRateProvider } from "@/types/currency";
+import type { CurrencyCode, ExchangeRate } from "@/types/currency";
+import type { HealthResult } from "@/types/healthcheck";
 
 export type CurrencyServiceOptions = {
   defaultBase?: CurrencyCode; // e.g. BTC

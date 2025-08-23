@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
+
 import { BitcoinService } from "@/application/services/BitcoinService";
-import type { ParsedBlock, WatchedAddress } from "@/types/blockchain";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { ParsedBlock, WatchedAddress } from "@/types/blockchain";
+
 import { emitMetric } from "./_metrics";
 
 class MockRpcTps extends BitcoinRpcClient {

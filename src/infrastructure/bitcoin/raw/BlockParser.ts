@@ -1,6 +1,6 @@
-import { ByteReader, sha256d, toHexLE } from "./ByteReader";
-import { parseTransaction, ParsedTx } from "./TxParser";
 import type { Network } from "./Address";
+import { ByteReader, sha256d, toHexLE } from "./ByteReader";
+import { ParsedTx, parseTransaction } from "./TxParser";
 
 export type ParsedRawBlock = {
   hash: string;

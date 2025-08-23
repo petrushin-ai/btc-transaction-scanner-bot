@@ -1,8 +1,9 @@
-import { loadEnvFiles } from "./env";
-import fs from "fs";
-import path from "path";
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
+import fs from "fs";
+import path from "path";
+
+import { loadEnvFiles } from "./env";
 
 export type AppConfig = {
   bitcoinRpcUrl: string;

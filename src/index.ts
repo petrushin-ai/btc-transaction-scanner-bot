@@ -1,11 +1,11 @@
-import { logger } from "@/infrastructure/logger";
+import { BTC, USD } from "@/application/constants";
+import { logActivities, logBlockSummary, logOpReturnData } from "@/application/helpers/bitcoin";
+import { getUsdRate, mapActivitiesWithUsd } from "@/application/helpers/currency";
+import { BitcoinService, CurrencyService, HealthCheckService } from "@/application/services";
 import { loadConfig } from "@/config";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
-import { BitcoinService, CurrencyService, HealthCheckService } from "@/application/services";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import { getUsdRate, mapActivitiesWithUsd } from "@/application/helpers/currency";
-import { logBlockSummary, logActivities, logOpReturnData } from "@/application/helpers/bitcoin";
-import { BTC, USD } from "@/application/constants";
+import { logger } from "@/infrastructure/logger";
 
 async function main() {
   const cfg = loadConfig();

@@ -1,6 +1,6 @@
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import { BitcoinService } from "@/application/services/BitcoinService";
 import { loadConfig } from "@/config";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import { logger } from "@/infrastructure/logger";
 
 async function main() {

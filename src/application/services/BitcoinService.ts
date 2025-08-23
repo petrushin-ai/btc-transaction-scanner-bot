@@ -1,5 +1,6 @@
 import { BitcoinRpcClient, Raw } from "@/infrastructure/bitcoin";
 import type { HealthResult } from "@/types/healthcheck";
+
 import type {
   AddressActivity,
   BlockchainService,
