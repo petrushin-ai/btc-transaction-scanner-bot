@@ -1,6 +1,6 @@
-# BTC Transaction-scanner Bot (TypeScript) – Dockerized
+# BTC Transaction-scanner Bot (TypeScript) 
 
-Bun + TypeScript
+Assesment job - Bun + TypeScript
 
 ## Prerequisites
 
@@ -230,6 +230,15 @@ Compose proxies these env vars from `.env`:
 - `API_KEY_COINMARKETCAP`
 - `PARSE_RAW_BLOCKS`
   
+## Providers
+
+- Bitcoin RPC provider: QuickNode — see their developer center at `https://www.quicknode.com/docs/developer-center`. Any Bitcoin Core–compatible RPC endpoint is supported; set `BTC_RPC_API_URL` accordingly.
+- Currency rates: CoinMarketCap API — documentation at `https://coinmarketcap.com/api/documentation/v1/`. Provide `API_KEY_COINMARKETCAP` to enable USD equity.
+
+Notes on rates caching:
+- Rates are cached per provider/pair under `./cache/currency_rates.json` and controlled by `CUR_CACHE_VALIDITY_PERIOD`.
+- A single BTC→USD rate is fetched per processed block and reused for all activities in that block.
+
 ## JSON Notification Format
 
 The bot emits structured JSON events to stdout (and files). Production mode hides noisy debug entries; info-level activity notifications are always emitted.
@@ -258,7 +267,9 @@ The bot emits structured JSON events to stdout (and files). Production mode hide
   "label": "wallet-1",
   "direction": "in",
   "valueBtc": 0.01234567,
-  "valueUsd": 882.34
+  "valueUsd": 882.34,
+  "opReturnHex": "48656c6c6f20576f726c64",
+  "opReturnUtf8": "Hello World"
 }
 ```
 
