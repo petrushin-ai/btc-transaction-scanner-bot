@@ -56,6 +56,14 @@ export class CurrencyService implements CurrencyRateProvider {
     } catch {
       // ignore mkdir errors; next fs ops will throw if truly inaccessible
     }
+    // Ensure cache file exists so subsequent reads/writes work seamlessly
+    try {
+      if (!fs.existsSync(this.cacheFilePath)) {
+        fs.writeFileSync(this.cacheFilePath, "{}", { encoding: "utf-8", flag: "wx" });
+      }
+    } catch {
+      // ignore creation errors; subsequent fs ops will surface real issues
+    }
   }
 
   private resolveProjectRoot(): string {

@@ -1,61 +1,51 @@
 import pino, { Logger as PinoLogger } from "pino";
-import pinoPretty from "pino-pretty";
 import path from "path";
-import fs from "fs";
 import os from "os";
 import { loadEnvFiles } from "../../config/env";
+import {
+  getLoggingEnv,
+  findProjectRoot,
+  ensureFile,
+  normalizeJsonFileName,
+  createFileDestination,
+  buildStdoutStream,
+} from "./helpers";
 
 export type AppLogger = PinoLogger;
 
-let cached: AppLogger | undefined;
+const cachedByFileName: Map<string, AppLogger> = new Map();
 
-export function getLogger(): AppLogger {
-  if (cached) return cached;
+export function getLogger(fileName?: string): AppLogger {
+  const cacheKey = (fileName && fileName.trim()) ? fileName.trim() : "__default__";
+  const existing = cachedByFileName.get(cacheKey);
+  if (existing) return existing;
   // Load .env files without performing any validation. This avoids coupling the
   // logger to the validated application config and allows graceful defaults.
   loadEnvFiles();
 
-  const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").trim();
-  const serviceName = process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot";
-  const defaultLevel = environment === "development" ? "debug" : "info";
-  const logLevel = process.env.LOG_LEVEL || defaultLevel;
-  const prettyDefault = environment === "development" ? "true" : "false";
-  const logPretty = (process.env.LOG_PRETTY || prettyDefault).toLowerCase() === "true";
+  const { environment, serviceName, logLevel, logPretty } = getLoggingEnv();
 
-  // Resolve project root (nearest directory containing package.json) to ensure a single global logs/output.json
-  function fileExists(p: string): boolean {
-    try {
-      fs.accessSync(p, fs.constants.F_OK);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  function findProjectRoot(startDir: string): string {
-    let current = startDir;
-    while (true) {
-      if (fileExists(path.join(current, "package.json"))) return current;
-      const parent = path.dirname(current);
-      if (parent === current) return startDir;
-      current = parent;
-    }
-  }
+  // Resolve project root (nearest directory containing package.json) to ensure a single global logs dir
   const projectRoot = findProjectRoot(process.cwd());
 
-  // Build multi-destination stream: write structured NDJSON to root logs/output.json, and JSON/pretty to stdout.
-  const logFilePath = path.join(projectRoot, "logs", "output.json");
-  const fileStream = pino.destination({ dest: logFilePath, mkdir: true, sync: environment === "development" });
-  const stdoutStream = logPretty
-    ? pinoPretty({
-        colorize: true,
-        translateTime: "SYS:standard",
-        singleLine: false,
-        messageKey: "msg",
-        ignore: "pid,hostname",
-      })
-    : pino.destination(1);
+  // Ensure directory and file exist for consistent behavior across environments
 
-  cached = pino(
+  // Build multi-destination streams: always output to logs/output.json and stdout
+  const logFilePath = path.join(projectRoot, "logs", "output.json");
+  ensureFile(logFilePath, "");
+  const fileStream = createFileDestination(logFilePath, environment === "development");
+  const stdoutStream = buildStdoutStream(logPretty);
+
+  // Optionally add a secondary file stream logs/{fileName}.json
+  let secondaryFileStream: pino.DestinationStream | undefined;
+  if (fileName && fileName.trim()) {
+    const safeName = normalizeJsonFileName(fileName);
+    const specificLogFilePath = path.join(projectRoot, "logs", safeName);
+    ensureFile(specificLogFilePath, "");
+    secondaryFileStream = createFileDestination(specificLogFilePath, environment === "development");
+  }
+
+  const loggerInstance = pino(
     {
       level: logLevel,
       base: { service: serviceName, env: environment, pid: process.pid, hostname: os.hostname() },
@@ -80,10 +70,12 @@ export function getLogger(): AppLogger {
     },
     pino.multistream([
       { stream: fileStream },
+      ...(secondaryFileStream ? [{ stream: secondaryFileStream }] : []),
       { stream: stdoutStream },
     ])
   );
-  return cached;
+  cachedByFileName.set(cacheKey, loggerInstance);
+  return loggerInstance;
 }
 
 // Eagerly initialize a singleton for ergonomic named import usage
