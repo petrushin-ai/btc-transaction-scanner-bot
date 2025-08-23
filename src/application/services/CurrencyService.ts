@@ -1,7 +1,7 @@
 import type { CurrencyRateProvider } from "@/types/currency";
 import type { CurrencyCode, ExchangeRate } from "@/types/currency";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import type { HealthResult } from "@/types/health";
+import type { HealthResult } from "@/types/healthcheck";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";

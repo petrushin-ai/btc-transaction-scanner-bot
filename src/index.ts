@@ -1,10 +1,9 @@
 import { logger } from "@/infrastructure/logger";
 import { loadConfig } from "@/config";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
-import { BitcoinService, CurrencyService } from "@/application/services";
+import { BitcoinService, CurrencyService, HealthCheckService } from "@/application/services";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
-import { logHealthResult } from "@/application/helpers/health";
-import { getUsdRateSafely, mapActivitiesWithUsd } from "@/application/helpers/currency";
+import { getUsdRate, mapActivitiesWithUsd } from "@/application/helpers/currency";
 import { logBlockSummary, logActivities, logOpReturnData } from "@/application/helpers/bitcoin";
 import { BTC, USD } from "@/application/constants";
 
@@ -25,14 +24,8 @@ async function main() {
   });
 
   // Health checks during startup
-  await btc.connect();
-  const btcHealth = await btc.ping();
-  if (!btcHealth.ok) throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details?.error || "unknown error"}`);
-  logHealthResult(btcHealth);
-
-  const curHealth = await currency.ping();
-  if (!curHealth.ok) throw new Error(`Currency provider health check failed: ${curHealth.details?.error || "unknown error"}`);
-  logHealthResult(curHealth);
+  const health = new HealthCheckService();
+  await health.runStartupChecks(btc, currency);
 
   let lastHeight: number | undefined = undefined;
   for (;;) {
@@ -40,7 +33,7 @@ async function main() {
     lastHeight = block.height;
 
     // Fetch rate once per block for consistency and to reduce API calls
-    const rate = await getUsdRateSafely(currency);
+    const rate = await getUsdRate(currency);
 
     const activities = mapActivitiesWithUsd(
       btc.checkTransactions(block, cfg.watch),

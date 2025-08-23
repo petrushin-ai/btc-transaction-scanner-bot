@@ -1,5 +1,5 @@
 import type { CurrencyCode, ExchangeRate } from "@/types/currency";
-import type { HealthResult } from "@/types/health";
+import type { HealthResult } from "@/types/healthcheck";
 import { BTC, USD, USDT } from "@/application/constants";
 
 export type CoinMarketCapClientOptions = {

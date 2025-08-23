@@ -3,7 +3,7 @@ import type { CurrencyService } from "@/application/services/CurrencyService";
 import type { AddressActivity } from "@/types/blockchain";
 import { BTC, USD } from "@/application/constants";
 
-export async function getUsdRateSafely(currency: CurrencyService): Promise<number> {
+export async function getUsdRate(currency: CurrencyService): Promise<number> {
   try {
     const pair = await currency.getPair(BTC, USD);
     return pair.rate;
