@@ -1,5 +1,6 @@
 import type { CurrencyCode, ExchangeRate } from "@/types/currency";
 import type { HealthResult } from "@/types/health";
+import { BTC, USD, USDT } from "@/application/constants";
 
 export type CoinMarketCapClientOptions = {
   apiKey: string;
@@ -9,11 +10,11 @@ export type CoinMarketCapClientOptions = {
 
 function isCrypto(code: string): boolean {
   // Runtime guard for our current types set
-  return code === "BTC" || code === "USDT";
+  return code === BTC || code === USDT;
 }
 
 function isFiat(code: string): boolean {
-  return code === "USD";
+  return code === USD;
 }
 
 export class CoinMarketCapClient {

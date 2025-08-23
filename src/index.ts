@@ -3,6 +3,10 @@ import { loadConfig } from "@/config";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import { BitcoinService, CurrencyService } from "@/application/services";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
+import { logHealthResult } from "@/application/helpers/health";
+import { getUsdRateSafely, mapActivitiesWithUsd } from "@/application/helpers/currency";
+import { logBlockSummary, logActivities, logOpReturnData } from "@/application/helpers/bitcoin";
+import { BTC, USD } from "@/application/constants";
 
 async function main() {
   const cfg = loadConfig();
@@ -16,23 +20,19 @@ async function main() {
     baseUrl: cfg.coinMarketCapBaseUrl,
   });
   const currency = new CurrencyService(cmcClient, {
-    defaultBase: "BTC",
-    defaultQuote: "USD",
+    defaultBase: BTC,
+    defaultQuote: USD,
   });
 
   // Health checks during startup
   await btc.connect();
   const btcHealth = await btc.ping();
-  if (!btcHealth.ok) {
-    throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details?.error || "unknown error"}`);
-  }
-  logger.info({ type: "health", provider: btcHealth.provider, status: btcHealth.status, latencyMs: btcHealth.latencyMs });
+  if (!btcHealth.ok) throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details?.error || "unknown error"}`);
+  logHealthResult(btcHealth);
 
   const curHealth = await currency.ping();
-  if (!curHealth.ok) {
-    throw new Error(`Currency provider health check failed: ${curHealth.details?.error || "unknown error"}`);
-  }
-  logger.info({ type: "health", provider: curHealth.provider, status: curHealth.status, latencyMs: curHealth.latencyMs });
+  if (!curHealth.ok) throw new Error(`Currency provider health check failed: ${curHealth.details?.error || "unknown error"}`);
+  logHealthResult(curHealth);
 
   let lastHeight: number | undefined = undefined;
   for (;;) {
@@ -40,59 +40,21 @@ async function main() {
     lastHeight = block.height;
 
     // Fetch rate once per block for consistency and to reduce API calls
-    let rate = 0;
-    try {
-      const pair = await currency.getPair("BTC", "USD");
-      rate = pair.rate;
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      logger.warn({ type: "currency.error", msg: message });
-    }
+    const rate = await getUsdRateSafely(currency);
 
-    const activities = btc.checkTransactions(block, cfg.watch).map((a) => ({
-      ...a,
-      valueUsd: rate > 0 ? Number((a.valueBtc * rate).toFixed(2)) : undefined,
-    }));
+    const activities = mapActivitiesWithUsd(
+      btc.checkTransactions(block, cfg.watch),
+      rate,
+    );
 
     // Emit a block summary
-    logger.info({
-      type: "block.activities",
-      blockHeight: block.height,
-      blockHash: block.hash,
-      txCount: block.transactions.length,
-      activityCount: activities.length,
-    });
+    logBlockSummary(block, activities.length);
 
     // Emit per-activity notifications
-    for (const act of activities) {
-      logger.info({
-        type: "transaction.activity",
-        blockHeight: block.height,
-        blockHash: block.hash,
-        txid: act.txid,
-        address: act.address,
-        label: act.label,
-        direction: act.direction,
-        valueBtc: act.valueBtc,
-        valueUsd: act.valueUsd,
-      });
-    }
+    logActivities(block, activities);
 
     // Emit OP_RETURN data when present in any tx outputs
-    for (const tx of block.transactions) {
-      for (const out of tx.outputs) {
-        if (out.scriptType === "nulldata" && (out.opReturnDataHex || out.opReturnUtf8)) {
-          logger.info({
-            type: "transaction.op_return",
-            blockHeight: block.height,
-            blockHash: block.hash,
-            txid: tx.txid,
-            opReturnHex: out.opReturnDataHex,
-            opReturnUtf8: out.opReturnUtf8,
-          });
-        }
-      }
-    }
+    logOpReturnData(block);
   }
 }
 

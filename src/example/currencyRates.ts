@@ -2,6 +2,7 @@ import { CoinMarketCapClient } from "@/infrastructure";
 import { CurrencyService } from "@/application/services";
 import { logger as getLogger } from "@/infrastructure/logger";
 import { loadConfig } from "@/config";
+import { BTC, USD } from "@/application/constants";
 
 // Use logger that writes NDJSON lines to logs/currency_rates.ndjson
 const logger = getLogger({ fileName: "currency_rates" });
@@ -15,8 +16,8 @@ async function main() {
   const currency = new CurrencyService(client);
 
   const [btcUsdt, usdtUsd] = await Promise.all([
-    currency.getRate("BTC", "USDT"),
-    currency.getRate("USDT", "USD"),
+    currency.getRate(BTC, "USDT"),
+    currency.getRate("USDT", USD),
   ]);
 
   // Output as JSON suitable for stdout processing

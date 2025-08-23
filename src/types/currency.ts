@@ -1,7 +1,8 @@
-export type FiatCurrencyCode =
-  | "USD";
+import { BTC, USD, USDT } from "@/application/constants";
 
-export type CryptoCurrencyCode = "BTC" | "USDT";
+export type FiatCurrencyCode = typeof USD;
+
+export type CryptoCurrencyCode = typeof BTC | typeof USDT;
 
 export type CurrencyCode = FiatCurrencyCode | CryptoCurrencyCode;
 
