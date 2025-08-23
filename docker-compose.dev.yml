@@ -11,8 +11,6 @@ services:
       - ./.env
     environment:
       - APP_ENV=development
-      - LOG_PRETTY=true
-      - VERBOSE=${VERBOSE}
       - BTC_RPC_API_URL=${BTC_RPC_API_URL}
       - BITCOIN_POLL_INTERVAL_MS=${BITCOIN_POLL_INTERVAL_MS}
       - RESOLVE_INPUT_ADDRESSES=${RESOLVE_INPUT_ADDRESSES}

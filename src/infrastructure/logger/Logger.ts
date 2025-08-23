@@ -74,6 +74,36 @@ function getLogger(arg?: string | LoggerOptions): AppLogger {
           return {level: label};
         },
       },
+      hooks: {
+        logMethod(args, method) {
+          // Central gating by environment:
+          // - production: hide debug-level poll/health/summary/op_return logs
+          // - development: show everything per level
+          try {
+            const env = environment;
+            if (env === "production" && typeof args[0] === "object" && args[0] !== null) {
+              const obj = args[0] as any;
+              const type = obj.type as string | undefined;
+              const isDebugCandidate = [
+                "poll.start",
+                "poll.tick",
+                "poll.new_block",
+                "block.activities",
+                "transaction.op_return",
+                "health",
+              ].includes(type || "");
+              if (isDebugCandidate && method === (this as any).debug) {
+                return; // skip
+              }
+              // Additionally, if these came in at info level, down-gate them in prod
+              if (isDebugCandidate && (method === (this as any).info)) {
+                return; // skip info-level noisy types in production
+              }
+            }
+          } catch {}
+          method.apply(this, args as any);
+        },
+      },
       /* Redact common sensitive keys if accidentally logged */
       redact: {
         paths: [

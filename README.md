@@ -229,4 +229,4 @@ Compose proxies these env vars from `.env`:
 - `COINMARKETCAP_BASE_URL`
 - `API_KEY_COINMARKETCAP`
 - `PARSE_RAW_BLOCKS`
-- `VERBOSE`
+  

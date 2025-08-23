@@ -14,7 +14,6 @@ export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
   resolveInputAddresses?: boolean;
   parseRawBlocks?: boolean;
-  verbose?: boolean;
 };
 
 export class BitcoinService implements BlockchainService {
@@ -31,8 +30,18 @@ export class BitcoinService implements BlockchainService {
     this.pollIntervalMs = opts?.pollIntervalMs ?? 1000;
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
     this.parseRawBlocks = opts?.parseRawBlocks ?? false;
-    this.verbose = opts?.verbose ?? false;
-    this.log = logger("bitcoin-service");
+    this.verbose = false;
+    this.log = logger("bitcoin_service");
+  }
+
+  private isDevelopment(): boolean {
+    const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
+    return env === "development";
+  }
+
+  private isProduction(): boolean {
+    const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
+    return env === "production";
   }
 
   async connect(): Promise<void> {
@@ -76,10 +85,9 @@ export class BitcoinService implements BlockchainService {
     let current: number = sinceHeight ?? (await this.rpc.getBlockCount());
     const pollStartedAt = Date.now();
     const initialLatest = await this.rpc.getBlockCount();
-    if (this.verbose) {
-      // Basic poll loop stats
+    if (this.isDevelopment() || (this.verbose && !this.isProduction())) {
       const delta = initialLatest - current;
-      this.log.debug({
+      this.log.info({
         type: "poll.start",
         startHeight: current,
         latestHeight: initialLatest,
@@ -89,15 +97,15 @@ export class BitcoinService implements BlockchainService {
     for (; ;) {
       await this.sleep(this.pollIntervalMs);
       const latest = await this.rpc.getBlockCount();
-      if (this.verbose) {
+      if (this.isDevelopment() || (this.verbose && !this.isProduction())) {
         const waitedMs = Date.now() - pollStartedAt;
-        this.log.debug({type: "poll.tick", heightChecked: latest, waitedMs});
+        this.log.info({type: "poll.tick", heightChecked: latest, waitedMs});
       }
       if (latest > current) {
         const hash = await this.rpc.getBlockHash(latest);
-        if (this.verbose) {
+        if (this.isDevelopment() || (this.verbose && !this.isProduction())) {
           const waitedMs = Date.now() - pollStartedAt;
-          this.log.debug({type: "poll.new_block", newHeight: latest, waitedMs});
+          this.log.info({type: "poll.new_block", newHeight: latest, waitedMs});
         }
         return this.parseBlockByHash(hash);
       }

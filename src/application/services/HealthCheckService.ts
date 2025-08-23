@@ -8,7 +8,6 @@ export class HealthCheckService {
   async runStartupChecks(
     bitcoin: BitcoinService,
     currency: CurrencyService,
-    verbose: boolean = false
   ): Promise<HealthResult[]> {
     await bitcoin.connect();
 
@@ -45,10 +44,9 @@ export class HealthCheckService {
       })(),
     ]);
 
-    if (verbose) {
-      logHealthResult(btcHealth);
-      logHealthResult(curHealth);
-    }
+    // Always emit at debug level; logger decides visibility
+    logHealthResult(btcHealth);
+    logHealthResult(curHealth);
 
     if (!btcHealth.ok) {
       throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details && (btcHealth.details as any).error || "unknown error"}`);

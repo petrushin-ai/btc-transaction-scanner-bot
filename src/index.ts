@@ -9,12 +9,15 @@ import { logger } from "@/infrastructure/logger";
 
 async function main() {
   const cfg = loadConfig();
+  const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
+  if (env === "production") {
+    logger.info({ type: "init", mode: "production", msg: "Starting in production mode" });
+  }
   const rpc = new BitcoinRpcClient({ url: cfg.bitcoinRpcUrl });
   const btc = new BitcoinService(rpc, {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
     parseRawBlocks: cfg.parseRawBlocks,
-    verbose: cfg.verbose,
   });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
@@ -27,7 +30,7 @@ async function main() {
 
   // Health checks during startup
   const health = new HealthCheckService();
-  await health.runStartupChecks(btc, currency, cfg.verbose);
+  await health.runStartupChecks(btc, currency);
 
   let lastHeight: number | undefined = undefined;
   for (;;) {
@@ -43,17 +46,15 @@ async function main() {
     );
 
     // Emit a block summary only if verbose
-    if (cfg.verbose) {
-      logBlockSummary(block, activities.length);
-    }
+    // Summary logs will be emitted at debug level and gated by logger config
+    logBlockSummary(block, activities.length);
 
     // Emit per-activity notifications (always)
     logActivities(block, activities);
 
     // Emit OP_RETURN data only if verbose
-    if (cfg.verbose) {
-      logOpReturnData(block);
-    }
+    // OP_RETURN logs at debug level; logger config controls visibility
+    logOpReturnData(block);
   }
 }
 

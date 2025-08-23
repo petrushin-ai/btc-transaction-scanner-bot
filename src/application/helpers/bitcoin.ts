@@ -2,7 +2,7 @@ import { logger } from "@/infrastructure/logger";
 import type { AddressActivity, ParsedBlock } from "@/types/blockchain";
 
 export function logBlockSummary(block: ParsedBlock, activityCount: number): void {
-  logger.info({
+  logger.debug({
     type: "block.activities",
     blockHeight: block.height,
     blockHash: block.hash,
@@ -31,7 +31,7 @@ export function logOpReturnData(block: ParsedBlock): void {
   for (const tx of block.transactions) {
     for (const output of tx.outputs) {
       if (output.scriptType === "nulldata" && (output.opReturnDataHex || output.opReturnUtf8)) {
-        logger.info({
+        logger.debug({
           type: "transaction.op_return",
           blockHeight: block.height,
           blockHash: block.hash,
