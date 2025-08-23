@@ -85,8 +85,11 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     }
   }
 
-  // const locktime = reader.readUInt32LE();
-  const locktimeStart = reader.position - 4;
+  // Read locktime to advance the reader and compute its byte range
+  const locktimeStart = reader.position;
+  // Read to consume 4 bytes so the ByteReader ends at the correct position
+  // (next transaction), and its bytes are used to compute the txid serialization
+  reader.readUInt32LE();
 
   // Compute txid excluding witness per BIP-0141
   const versionBytes = reader.sliceAbsolute(start, start + 4);
