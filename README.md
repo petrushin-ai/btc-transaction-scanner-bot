@@ -51,6 +51,19 @@ Variables (with defaults and purpose):
 - `LOG_SERVICE_NAME` (default: `btc-transaction-scanner-bot`)
   - Service name injected into logs.
 
+### Currency
+
+- `API_KEY_COINMARKETCAP` (required)
+  - CoinMarketCap API key used by the currency provider client.
+- `COINMARKETCAP_BASE_URL` (default: `https://pro-api.coinmarketcap.com`)
+  - Base URL for CoinMarketCap API.
+- `CUR_CACHE_VALIDITY_PERIOD` (seconds, default: `3600`)
+  - Cache TTL for currency pairs; fresh network requests are skipped while cached entries are valid.
+
+Notes:
+- Currency rates are cached per provider/pair at `./cache/currency_rates.json`.
+- Cache keys are namespaced by provider (e.g., `coinmarketcap`) and pair (e.g., `BTC_USDT`).
+
 Examples:
 
 ```bash
