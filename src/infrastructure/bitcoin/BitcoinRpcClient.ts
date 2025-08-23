@@ -82,6 +82,11 @@ export class BitcoinRpcClient {
     return this.call("getblock", [blockHash, 2]);
   }
 
+  // verbosity = 0 returns the raw serialized block as hex string
+  getBlockRawByHash(blockHash: string): Promise<string> {
+    return this.call("getblock", [blockHash, 0]);
+  }
+
   // Fetch previous transaction to resolve input addresses; requires -txindex on node for historical lookups
   getRawTransactionVerbose(txid: string): Promise<unknown> {
     return this.call("getrawtransaction", [txid, true]);
