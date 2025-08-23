@@ -24,7 +24,8 @@ export function loadEnvFiles(cwd: string = process.cwd()): void {
 
   for (const p of candidates) {
     if (!fileExists(p)) continue;
-    dotenv.config({ path: p, override: true });
+    // Do not override existing process env variables; external env takes precedence
+    dotenv.config({ path: p, override: false });
   }
 }
 

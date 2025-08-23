@@ -1,10 +1,9 @@
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import { BitcoinService } from "@/application/services/BitcoinService";
 import { loadConfig } from "@/config";
-import { getLogger } from "@/infrastructure/logger";
+import { logger } from "@/infrastructure/logger";
 
 async function main() {
-  const logger = getLogger();
   const cfg = loadConfig();
   const rpc = new BitcoinRpcClient({
     url: cfg.bitcoinRpcUrl,
@@ -30,8 +29,8 @@ async function main() {
 // Do not auto-run in production; this is a one-off example
 if (import.meta.main) {
   main().catch((err) => {
-    const logger = getLogger();
-    logger.error({ err }, "runOnce failed");
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(`runOnce failed: ${message}`);
     process.exit(1);
   });
 }
