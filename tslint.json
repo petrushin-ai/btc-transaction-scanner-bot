@@ -29,7 +29,7 @@
     "no-bitwise": false,
     "max-line-length": {
       "severity": "warning",
-      "options": [120]
+      "options": [100]
     },
     "quotemark": false,
     "semicolon": [true, "always"],
