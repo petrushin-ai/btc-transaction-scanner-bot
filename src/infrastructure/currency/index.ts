@@ -1,4 +1,4 @@
-export { CoinApiClient } from "./CoinApiClient";
-export type { CoinApiClientOptions } from "./CoinApiClient";
+export { CoinMarketCapClient } from "./CoinMarketCapClient";
+export type { CoinMarketCapClientOptions } from "./CoinMarketCapClient";
 
 

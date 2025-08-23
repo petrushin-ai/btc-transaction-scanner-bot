@@ -17,9 +17,9 @@ export type AppConfig = {
   serviceName: string;
   logLevel: string;
   logPretty: boolean;
-  // coinapi
-  coinApiBaseUrl: string;
-  coinApiApiKey: string;
+  // coinmarketcap
+  coinMarketCapBaseUrl: string;
+  coinMarketCapApiKey: string;
 };
 
 function parseWatchAddresses(raw: string | undefined): { address: string; label?: string }[] {
@@ -47,11 +47,12 @@ export function loadConfig(): AppConfig {
         "BITCOIN_RPC_URL", 
         "BITCOIN_RPC_USER", 
         "BITCOIN_RPC_PASSWORD", 
-        "COINAPI_BASE_URL",
-        "API_KEY_APIBRICKS_COINAPI"
+        "COINMARKETCAP_BASE_URL",
+        "API_KEY_COINMARKETCAP"
       ],
       additionalProperties: false,
       properties: {
+        API_KEY_COINMARKETCAP: { type: "string", minLength: 1 },
         BITCOIN_RPC_URL: {
           type: "string",
           allOf: [
@@ -67,7 +68,7 @@ export function loadConfig(): AppConfig {
             { type: "string", pattern: "^[0-9]+$" },
           ],
         },
-        COINAPI_BASE_URL: {
+        COINMARKETCAP_BASE_URL: {
           type: "string",
           allOf: [
             { format: "uri" },
@@ -90,14 +91,6 @@ export function loadConfig(): AppConfig {
           anyOf: [
             { type: "boolean" },
             { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
-          ],
-        },
-        API_KEY_APIBRICKS_COINAPI: { type: "string", minLength: 1 },
-        COINAPI_BASE_URL: {
-          type: "string",
-          allOf: [
-            { format: "uri" },
-            { pattern: "^https?://" },
           ],
         },
       },
@@ -139,8 +132,8 @@ export function loadConfig(): AppConfig {
   const logLevel = (process.env.LOG_LEVEL || defaultLevel).toString().trim();
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
-  const coinApiApiKey = (process.env.API_KEY_APIBRICKS_COINAPI as string).trim();
-  const coinApiBaseUrl = (process.env.COINAPI_BASE_URL || "https://rest.coinapi.io").toString().trim();
+  const coinMarketCapApiKey = (process.env.API_KEY_COINMARKETCAP as string).trim();
+  const coinMarketCapBaseUrl = (process.env.COINMARKETCAP_BASE_URL || "https://pro-api.coinmarketcap.com").toString().trim();
   let watch: { address: string; label?: string }[] = [];
   try {
     const fileContent = fs.readFileSync(addressesFile, "utf-8");
@@ -162,8 +155,8 @@ export function loadConfig(): AppConfig {
     serviceName,
     logLevel,
     logPretty,
-    coinApiBaseUrl,
-    coinApiApiKey,
+    coinMarketCapBaseUrl,
+    coinMarketCapApiKey,
   };
 }
 

@@ -1,6 +1,6 @@
 import type { CurrencyRateProvider } from "@/domain/currency";
 import type { CurrencyCode, ExchangeRate } from "@/domain/currency";
-import { CoinApiClient } from "@/infrastructure/currency";
+import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
 
 export type CurrencyServiceOptions = {
   defaultBase?: CurrencyCode; // e.g. BTC
@@ -8,11 +8,11 @@ export type CurrencyServiceOptions = {
 };
 
 export class CurrencyService implements CurrencyRateProvider {
-  private client: CoinApiClient;
+  private client: CoinMarketCapClient;
   private defaultBase?: CurrencyCode;
   private defaultQuote?: CurrencyCode;
 
-  constructor(client: CoinApiClient, opts?: CurrencyServiceOptions) {
+  constructor(client: CoinMarketCapClient, opts?: CurrencyServiceOptions) {
     this.client = client;
     this.defaultBase = opts?.defaultBase;
     this.defaultQuote = opts?.defaultQuote;

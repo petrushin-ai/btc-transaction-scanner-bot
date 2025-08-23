@@ -1,13 +1,13 @@
-import { CoinApiClient } from "@/infrastructure";
+import { CoinMarketCapClient } from "@/infrastructure";
 import { CurrencyService } from "@/application/services";
 import { logger } from "@/infrastructure/logger";
 import { loadConfig } from "@/config";
 
 async function main() {
   const config = loadConfig();
-  const client = new CoinApiClient({
-    apiKey: config.coinApiApiKey,
-    baseUrl: config.coinApiBaseUrl,
+  const client = new CoinMarketCapClient({
+    apiKey: config.coinMarketCapApiKey,
+    baseUrl: config.coinMarketCapBaseUrl,
   });
   const currency = new CurrencyService(client);
 
