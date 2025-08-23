@@ -3,6 +3,7 @@ import path from "path";
 
 import {loadConfig} from "@/config";
 import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
+
 import { updateAddressesFromLatestFixture } from "./update-addresses-from-fixtures";
 
 async function ensureDir(dir: string): Promise<void> {
