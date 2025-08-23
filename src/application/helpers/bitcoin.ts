@@ -23,6 +23,8 @@ export function logActivities(block: ParsedBlock, activities: AddressActivity[])
       direction: activity.direction,
       valueBtc: activity.valueBtc,
       valueUsd: activity.valueUsd,
+      opReturnHex: activity.opReturnHex,
+      opReturnUtf8: activity.opReturnUtf8,
     });
   }
 }

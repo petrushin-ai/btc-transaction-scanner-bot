@@ -44,6 +44,9 @@ export type AddressActivity = {
     valueBtc: number;
     /** Optional precomputed USD equivalent for valueBtc */
     valueUsd?: number;
+    /** If the tx includes OP_RETURN outputs, echo best-effort data */
+    opReturnHex?: string;
+    opReturnUtf8?: string;
 };
 
 export interface BlockchainService {

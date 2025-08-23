@@ -177,6 +177,15 @@ export class BitcoinService implements BlockchainService {
 
     const activities: AddressActivity[] = [];
     for (const tx of block.transactions) {
+      // collect OP_RETURN data if present in this tx (first seen wins)
+      let opReturnHex: string | undefined;
+      let opReturnUtf8: string | undefined;
+      for (const out of tx.outputs) {
+        if (out.scriptType === "nulldata" && (out.opReturnDataHex || out.opReturnUtf8)) {
+          opReturnHex = opReturnHex || out.opReturnDataHex;
+          opReturnUtf8 = opReturnUtf8 || (out as any).opReturnUtf8;
+        }
+      }
       // Aggregate in/out per address for this tx
       const incoming = new Map<string, number>();
       const outgoing = new Map<string, number>();
@@ -209,6 +218,8 @@ export class BitcoinService implements BlockchainService {
               txid: tx.txid,
               direction: net >= 0 ? "in" : "out",
               valueBtc: Math.abs(net),
+              opReturnHex,
+              opReturnUtf8,
             });
           }
         } else if (inSum > 0) {
@@ -218,6 +229,8 @@ export class BitcoinService implements BlockchainService {
             txid: tx.txid,
             direction: "in",
             valueBtc: inSum,
+            opReturnHex,
+            opReturnUtf8,
           });
         } else if (outSum > 0) {
           activities.push({
@@ -226,6 +239,8 @@ export class BitcoinService implements BlockchainService {
             txid: tx.txid,
             direction: "out",
             valueBtc: outSum,
+            opReturnHex,
+            opReturnUtf8,
           });
         }
       }
