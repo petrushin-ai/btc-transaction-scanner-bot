@@ -25,7 +25,7 @@ The app loads env files in this order (later overrides earlier): `.env`, `.env.l
 
 Variables (with defaults and purpose):
 
-- `BITCOIN_RPC_URL` (default: `http://localhost:8332`)
+- `BITCOIN_RPC_API_URL` (default: `http://localhost:8332`)
   - Full URL of Bitcoin Core JSON-RPC endpoint (`http(s)://host:port`).
 - `BITCOIN_RPC_USER` (optional)
   - RPC username if node requires basic auth.
@@ -103,7 +103,7 @@ echo "LOG_LEVEL=debug" >> .env
 docker build -t btc-transaction-scanner-bot .
 # pass envs explicitly
 docker run --rm \
-  -e BITCOIN_RPC_URL=http://host.docker.internal:8332 \
+  -e BITCOIN_RPC_API_URL=http://host.docker.internal:8332 \
   -e BITCOIN_RPC_USER=rpcuser \
   -e BITCOIN_RPC_PASSWORD=rpcpass \
   -v $(pwd)/addresses.json:/app/addresses.json:ro \

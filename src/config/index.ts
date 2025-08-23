@@ -44,7 +44,7 @@ export function loadConfig(): AppConfig {
     const schema = {
       type: "object",
       required: [
-        "BITCOIN_RPC_URL", 
+        "BITCOIN_RPC_API_URL", 
         "BITCOIN_RPC_USER", 
         "BITCOIN_RPC_PASSWORD", 
         "COINMARKETCAP_BASE_URL",
@@ -53,7 +53,7 @@ export function loadConfig(): AppConfig {
       additionalProperties: false,
       properties: {
         API_KEY_COINMARKETCAP: { type: "string", minLength: 1 },
-        BITCOIN_RPC_URL: {
+        BITCOIN_RPC_API_URL: {
           type: "string",
           allOf: [
             { format: "uri" },
@@ -121,7 +121,7 @@ export function loadConfig(): AppConfig {
   }
   const cwd = process.cwd();
   const addressesFile = (process.env.WATCH_ADDRESSES_FILE || path.join(cwd, "addresses.json")).trim();
-  const bitcoinRpcUrl = (process.env.BITCOIN_RPC_URL as string).trim();
+  const bitcoinRpcUrl = (process.env.BITCOIN_RPC_API_URL as string).trim();
   const bitcoinRpcUser = process.env.BITCOIN_RPC_USER?.trim();
   const bitcoinRpcPassword = process.env.BITCOIN_RPC_PASSWORD?.trim();
   const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
