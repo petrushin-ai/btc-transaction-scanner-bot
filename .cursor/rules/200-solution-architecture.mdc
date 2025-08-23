@@ -6,8 +6,13 @@ alwaysApply: false
 
 ## Tech stack
 
-- Bun runtime (>=1.1) \ TypeScript (ESNext)
-- Docker (containerized runtime)
+- Bun 1.1+ runtime, TypeScript (ESNext, strict), ESM-only modules
+- Dockerized runtime using `oven/bun:1.1` base image
+- Package manager/runtime: Bun (`bun.lock`, `bun run`)
+- Logging: Pino v9 with optional `pino-pretty` in development
+- Configuration: `dotenv` + `env-schema` (Ajv v8 + `ajv-formats`) for typed/validated env
+- Bitcoin node integration: JSON-RPC (Bitcoin Core/compatible) via `BitcoinRpcClient`
+- Currency rates: CoinMarketCap client with file-based cache (`cache/currency_rates.json`)
 
 ## Folder structure (clean architecture)
 
