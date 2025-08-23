@@ -4,7 +4,7 @@ import { BitcoinService } from "./BitcoinService";
 import { CurrencyService } from "./CurrencyService";
 
 export class HealthCheckService {
-  async runStartupChecks(bitcoin: BitcoinService, currency: CurrencyService): Promise<HealthResult[]> {
+  async runStartupChecks(bitcoin: BitcoinService, currency: CurrencyService, verbose: boolean = false): Promise<HealthResult[]> {
     await bitcoin.connect();
 
     const [btcHealth, curHealth] = await Promise.all([
@@ -26,8 +26,10 @@ export class HealthCheckService {
       })(),
     ]);
 
-    logHealthResult(btcHealth);
-    logHealthResult(curHealth);
+    if (verbose) {
+      logHealthResult(btcHealth);
+      logHealthResult(curHealth);
+    }
 
     if (!btcHealth.ok) {
       throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details && (btcHealth.details as any).error || "unknown error"}`);

@@ -15,6 +15,7 @@ export type AppConfig = {
   serviceName: string;
   logLevel: string;
   logPretty: boolean;
+  verbose: boolean;
   // coinmarketcap
   coinMarketCapBaseUrl: string;
   coinMarketCapApiKey: string;
@@ -91,7 +92,12 @@ export function loadConfig(): AppConfig {
             { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
           ],
         },
-        VERBOSE:{ type: "boolean" },
+        VERBOSE: {
+          anyOf: [
+            { type: "boolean" },
+            { type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""] },
+          ],
+        },
       },
     } as const;
 
@@ -130,6 +136,7 @@ export function loadConfig(): AppConfig {
   const logLevel = (process.env.LOG_LEVEL || defaultLevel).toString().trim();
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
+  const verbose = (process.env.VERBOSE ?? "").toString().toLowerCase().trim() === "true";
   const coinMarketCapApiKey = (process.env.API_KEY_COINMARKETCAP as string).trim();
   const coinMarketCapBaseUrl = (process.env.COINMARKETCAP_BASE_URL || "https://pro-api.coinmarketcap.com").toString().trim();
   let watch: { address: string; label?: string }[] = [];
@@ -152,6 +159,7 @@ export function loadConfig(): AppConfig {
     serviceName,
     logLevel,
     logPretty,
+    verbose,
     coinMarketCapBaseUrl,
     coinMarketCapApiKey,
   };

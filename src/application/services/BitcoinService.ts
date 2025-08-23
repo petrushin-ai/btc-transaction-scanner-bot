@@ -12,6 +12,7 @@ export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
   resolveInputAddresses?: boolean;
   parseRawBlocks?: boolean;
+  verbose?: boolean;
 };
 
 export class BitcoinService implements BlockchainService {
@@ -20,12 +21,14 @@ export class BitcoinService implements BlockchainService {
   private resolveInputAddresses: boolean;
   private parseRawBlocks: boolean;
   private network: Raw.Network = "mainnet";
+  private verbose: boolean = false;
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
     this.pollIntervalMs = opts?.pollIntervalMs ?? 1000;
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
     this.parseRawBlocks = opts?.parseRawBlocks ?? false;
+    this.verbose = opts?.verbose ?? false;
   }
 
   async connect(): Promise<void> {
@@ -68,11 +71,26 @@ export class BitcoinService implements BlockchainService {
   async awaitNewBlock(sinceHeight?: number): Promise<ParsedBlock> {
     const startHeight = sinceHeight ?? (await this.rpc.getBlockCount());
     let current: number = startHeight;
+    const pollStartedAt = Date.now();
+    const initialLatest = await this.rpc.getBlockCount();
+    if (this.verbose) {
+      // Basic poll loop stats
+      const delta = initialLatest - current;
+      console.log(JSON.stringify({ type: "poll.start", startHeight: current, latestHeight: initialLatest, behindBlocks: delta }));
+    }
     for (;;) {
       await this.sleep(this.pollIntervalMs);
       const latest = await this.rpc.getBlockCount();
+      if (this.verbose) {
+        const waitedMs = Date.now() - pollStartedAt;
+        console.log(JSON.stringify({ type: "poll.tick", heightChecked: latest, waitedMs }));
+      }
       if (latest > current) {
         const hash = await this.rpc.getBlockHash(latest);
+        if (this.verbose) {
+          const waitedMs = Date.now() - pollStartedAt;
+          console.log(JSON.stringify({ type: "poll.new_block", newHeight: latest, waitedMs }));
+        }
         return this.parseBlockByHash(hash);
       }
     }

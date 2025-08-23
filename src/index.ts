@@ -14,6 +14,7 @@ async function main() {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
     parseRawBlocks: cfg.parseRawBlocks,
+    verbose: cfg.verbose,
   });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
@@ -26,7 +27,7 @@ async function main() {
 
   // Health checks during startup
   const health = new HealthCheckService();
-  await health.runStartupChecks(btc, currency);
+  await health.runStartupChecks(btc, currency, cfg.verbose);
 
   let lastHeight: number | undefined = undefined;
   for (;;) {
@@ -41,14 +42,18 @@ async function main() {
       rate,
     );
 
-    // Emit a block summary
-    logBlockSummary(block, activities.length);
+    // Emit a block summary only if verbose
+    if (cfg.verbose) {
+      logBlockSummary(block, activities.length);
+    }
 
-    // Emit per-activity notifications
+    // Emit per-activity notifications (always)
     logActivities(block, activities);
 
-    // Emit OP_RETURN data when present in any tx outputs
-    logOpReturnData(block);
+    // Emit OP_RETURN data only if verbose
+    if (cfg.verbose) {
+      logOpReturnData(block);
+    }
   }
 }
 
