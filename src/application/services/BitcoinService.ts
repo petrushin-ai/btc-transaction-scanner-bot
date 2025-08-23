@@ -174,6 +174,17 @@ export class BitcoinService implements BlockchainService {
   checkTransactions(block: ParsedBlock, watched: WatchedAddress[]): AddressActivity[] {
     const watchSet = new Map<string, string | undefined>();
     for (const w of watched) watchSet.set(w.address, w.label);
+    // Build a case-insensitive index of labels to addresses for OP_RETURN matching
+    const labelIndex = new Map<string, { address: string; label?: string }[]>();
+    for (const w of watched) {
+      if (w.label && typeof w.label === "string") {
+        const key = w.label.trim().toLowerCase();
+        if (key.length === 0) continue;
+        const arr = labelIndex.get(key) || [];
+        arr.push({ address: w.address, label: w.label });
+        labelIndex.set(key, arr);
+      }
+    }
 
     const activities: AddressActivity[] = [];
     for (const tx of block.transactions) {
@@ -189,6 +200,7 @@ export class BitcoinService implements BlockchainService {
       // Aggregate in/out per address for this tx
       const incoming = new Map<string, number>();
       const outgoing = new Map<string, number>();
+      const matchedAddressesThisTx = new Set<string>();
 
       for (const out of tx.outputs) {
         const addr = out.address;
@@ -221,6 +233,7 @@ export class BitcoinService implements BlockchainService {
               opReturnHex,
               opReturnUtf8,
             });
+            matchedAddressesThisTx.add(addr);
           }
         } else if (inSum > 0) {
           activities.push({
@@ -232,6 +245,7 @@ export class BitcoinService implements BlockchainService {
             opReturnHex,
             opReturnUtf8,
           });
+          matchedAddressesThisTx.add(addr);
         } else if (outSum > 0) {
           activities.push({
             address: addr,
@@ -242,6 +256,32 @@ export class BitcoinService implements BlockchainService {
             opReturnHex,
             opReturnUtf8,
           });
+          matchedAddressesThisTx.add(addr);
+        }
+      }
+
+      // Label-based matching via OP_RETURN text: if OP_RETURN contains a watched label,
+      // emit a zero-value activity for the associated watched address (if not already matched above).
+      if (opReturnUtf8 && labelIndex.size > 0) {
+        const opLower = opReturnUtf8.toLowerCase();
+        for (const [labelKey, items] of labelIndex) {
+          if (!labelKey) continue;
+          if (opLower.includes(labelKey)) {
+            for (const item of items) {
+              if (matchedAddressesThisTx.has(item.address)) continue;
+              if (!watchSet.has(item.address)) continue;
+              activities.push({
+                address: item.address,
+                label: item.label,
+                txid: tx.txid,
+                direction: "in",
+                valueBtc: 0,
+                opReturnHex,
+                opReturnUtf8,
+              });
+              matchedAddressesThisTx.add(item.address);
+            }
+          }
         }
       }
     }
