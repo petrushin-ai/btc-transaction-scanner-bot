@@ -230,3 +230,121 @@ Compose proxies these env vars from `.env`:
 - `API_KEY_COINMARKETCAP`
 - `PARSE_RAW_BLOCKS`
   
+## JSON Notification Format
+
+The bot emits structured JSON events to stdout (and files). Production mode hides noisy debug entries; info-level activity notifications are always emitted.
+
+- Block summary (debug-level):
+
+```json
+{
+  "type": "block.activities",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txCount": 1342,
+  "activityCount": 3
+}
+```
+
+- Address activity (info-level):
+
+```json
+{
+  "type": "transaction.activity",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txid": "abc123...",
+  "address": "bc1q...",
+  "label": "wallet-1",
+  "direction": "in",
+  "valueBtc": 0.01234567,
+  "valueUsd": 882.34
+}
+```
+
+- OP_RETURN (debug-level, when present):
+
+```json
+{
+  "type": "transaction.op_return",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txid": "abc123...",
+  "opReturnHex": "48656c6c6f20576f726c64",
+  "opReturnUtf8": "Hello World"
+}
+```
+
+Notes:
+- When both incoming and outgoing operations exist for the same address within a tx, the bot emits the net difference as a single event with `direction` set accordingly and `valueBtc` equal to the absolute net.
+- Outgoing/net detection requires `RESOLVE_INPUT_ADDRESSES=true`.
+
+## Raw block parsing and script interpretation
+
+- Enable via `PARSE_RAW_BLOCKS=true`.
+- Raw path fetches hex with `getblock(hash, 0)` and parses using our custom modules:
+  - `src/infrastructure/bitcoin/raw/ByteReader.ts` – buffered reader and helpers
+  - `src/infrastructure/bitcoin/raw/Address.ts` – Base58Check and Bech32/Bech32m encoders, network versions
+  - `src/infrastructure/bitcoin/raw/Script.ts` – script classification and address derivation
+  - `src/infrastructure/bitcoin/raw/TxParser.ts` – SegWit-aware transaction parser; computes `txid` per BIP-0141
+  - `src/infrastructure/bitcoin/raw/BlockParser.ts` – parses block header and transactions
+
+Supported script types:
+- `pubkeyhash` (P2PKH)
+- `scripthash` (P2SH)
+- `witness_v0_keyhash` (P2WPKH)
+- `witness_v0_scripthash` (P2WSH)
+- `witness_v1_taproot` (P2TR)
+- `nulldata` (OP_RETURN) – extracts payload hex and best‑effort UTF‑8
+
+Network is detected from `getblockchaininfo.chain` and passed into address encoding.
+
+## USD equity calculation
+
+- Provide `API_KEY_COINMARKETCAP` to enable USD amounts (`valueUsd`).
+- A single BTC→USD rate per processed block is fetched and cached, then applied to all activities in that block.
+
+## Assessment compliance mapping
+
+- Core Requirements
+  - Configuration of addresses and names: `WATCH_ADDRESSES_FILE` (JSON array) or fallback `WATCH_ADDRESSES` CSV. See `src/config/index.ts`.
+  - Post new transactions and info (from/to, amount, USD, tx hash): JSON `transaction.activity` logs with `address`, `direction`, `valueBtc`, `valueUsd`, `txid`.
+  - Technical requirements compliance: validated by tests in `tests/` with metrics summary.
+- Transaction Notifications
+  - JSON logs to stdout and files; USD equity included when currency service configured.
+  - Mixed in/out operations per tx are netted to a single event.
+- Raw Data Processing
+  - Direct raw block parsing (`PARSE_RAW_BLOCKS=true`) with custom script interpretation; supports legacy and SegWit, OP_RETURN parsing.
+- Technical Requirements
+  - Performance: latency ≤ 5s (see `tests/latency.notification.test.ts`); bounded memory and fast raw parsing (see perf tests).
+  - Scalability: ≥1000 addresses matching and sustained 7 TPS (see `tests/perf.matching-1000.test.ts`, `tests/scalability.tps-7.test.ts`).
+- Restrictions
+  - No explorer APIs; only Bitcoin Core-compatible RPC is used.
+
+## Architecture (high level)
+
+- Clean layering:
+  - `src/types` – domain types and interfaces
+  - `src/application` – services (`BitcoinService`, `CurrencyService`, `HealthCheckService`) and helpers
+  - `src/infrastructure` – RPC client, logger, storage, currency client, raw parser
+  - `src/config` – env loading and validation
+- Flow per block: load config → await new block → parse (raw or verbose) → match watched addresses → annotate with USD → emit JSON notifications.
+
+## Operational notes
+
+- Production mode suppresses debug-level noisy logs (poll/summary/OP_RETURN) on stdout; `transaction.activity` stays at info.
+- File logs are always written and remain valid JSON arrays by default. NDJSON is available.
+- For net/outgoing detection, enable `RESOLVE_INPUT_ADDRESSES=true`.
+
+## Quick start (recap)
+
+```bash
+cp .env.example .env || true
+echo "APP_ENV=development" >> .env
+echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
+# Optional flags:
+# echo "PARSE_RAW_BLOCKS=true" >> .env
+# echo "RESOLVE_INPUT_ADDRESSES=true" >> .env
+
+bun run start
+```
