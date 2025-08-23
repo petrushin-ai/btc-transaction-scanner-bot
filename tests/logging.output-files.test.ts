@@ -1,5 +1,5 @@
-import path from "path";
 import { describe, expect, test } from "bun:test";
+import path from "path";
 
 import { logger } from "@/infrastructure/logger";
 import { findProjectRoot } from "@/infrastructure/logger/helpers";
