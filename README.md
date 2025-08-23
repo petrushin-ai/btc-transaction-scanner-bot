@@ -23,22 +23,33 @@ bun run start
 
 The app loads env files in this order (later overrides earlier): `.env`, `.env.local`, `.env.<env>`, `.env.<env>.local` where `<env>` is `NODE_ENV` or `APP_ENV` (default `development`).
 
-Required/optional variables:
+Variables (with defaults and purpose):
 
 - `BITCOIN_RPC_URL` (default: `http://localhost:8332`)
-- `BITCOIN_RPC_USER`
-- `BITCOIN_RPC_PASSWORD`
+  - Full URL of Bitcoin Core JSON-RPC endpoint (`http(s)://host:port`).
+- `BITCOIN_RPC_USER` (optional)
+  - RPC username if node requires basic auth.
+- `BITCOIN_RPC_PASSWORD` (optional)
+  - RPC password if node requires basic auth.
 - `BITCOIN_POLL_INTERVAL_MS` (default: `1000`)
+  - Interval in milliseconds between checks for a new block. Lower values reduce detection latency but increase RPC load.
 - `RESOLVE_INPUT_ADDRESSES` (`true|false`, default: `false`)
-- `WATCH_ADDRESSES` CSV `address[:label],...` (fallback if file missing)
-- `WATCH_ADDRESSES_FILE` path to JSON file (default: `./addresses.json`)
+  - When `true`, resolves input addresses by fetching previous transactions. Enables detection of outgoing ("out") activities but increases RPC calls.
+- `WATCH_ADDRESSES_FILE` (default: `./addresses.json`)
+  - Path to a JSON file containing an array of `{ address, label? }` to watch. Used as the primary source.
+- `WATCH_ADDRESSES` (optional)
+  - CSV fallback used only if `WATCH_ADDRESSES_FILE` is missing/unreadable. Format: `address[:label],address[:label],...`.
 
 ### Logger
 
-- `APP_ENV` or `NODE_ENV` (default: `development`) – influences defaults
-- `LOG_LEVEL` (default: `debug` in dev, `info` otherwise)
-- `LOG_PRETTY` (`true|false`, default: `true` in dev, `false` otherwise)
+- `APP_ENV` or `NODE_ENV` (default: `development`)
+  - Environment name; affects which `.env.*` files load and logger defaults.
+- `LOG_LEVEL` (default: `debug` in `development`, otherwise `info`)
+  - Log verbosity level (e.g., `trace`, `debug`, `info`, `warn`, `error`).
+- `LOG_PRETTY` (`true|false`, default: `true` in `development`, otherwise `false`)
+  - Pretty-print logs for human readability.
 - `LOG_SERVICE_NAME` (default: `btc-transaction-scanner-bot`)
+  - Service name injected into logs.
 
 Examples:
 
