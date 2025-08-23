@@ -7,8 +7,6 @@ async function main() {
   const cfg = loadConfig();
   const rpc = new BitcoinRpcClient({
     url: cfg.bitcoinRpcUrl,
-    username: cfg.bitcoinRpcUser,
-    password: cfg.bitcoinRpcPassword,
   });
   const svc = new BitcoinService(rpc, {
     pollIntervalMs: cfg.pollIntervalMs,

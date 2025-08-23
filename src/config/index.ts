@@ -7,8 +7,6 @@ import addFormats from "ajv-formats";
 
 export type AppConfig = {
   bitcoinRpcUrl: string;
-  bitcoinRpcUser?: string;
-  bitcoinRpcPassword?: string;
   pollIntervalMs: number;
   resolveInputAddresses: boolean;
   watch: { address: string; label?: string }[];
@@ -44,24 +42,20 @@ export function loadConfig(): AppConfig {
     const schema = {
       type: "object",
       required: [
-        "BITCOIN_RPC_API_URL", 
-        "BITCOIN_RPC_USER", 
-        "BITCOIN_RPC_PASSWORD", 
+        "BTC_RPC_API_URL", 
         "COINMARKETCAP_BASE_URL",
         "API_KEY_COINMARKETCAP"
       ],
       additionalProperties: false,
       properties: {
         API_KEY_COINMARKETCAP: { type: "string", minLength: 1 },
-        BITCOIN_RPC_API_URL: {
+        BTC_RPC_API_URL: {
           type: "string",
           allOf: [
             { format: "uri" },
             { pattern: "^https?://" },
           ],
         },
-        BITCOIN_RPC_USER: { type: "string", minLength: 1 },
-        BITCOIN_RPC_PASSWORD: { type: "string", minLength: 1 },
         BITCOIN_POLL_INTERVAL_MS: {
           anyOf: [
             { type: "integer", minimum: 1 },
@@ -121,9 +115,7 @@ export function loadConfig(): AppConfig {
   }
   const cwd = process.cwd();
   const addressesFile = (process.env.WATCH_ADDRESSES_FILE || path.join(cwd, "addresses.json")).trim();
-  const bitcoinRpcUrl = (process.env.BITCOIN_RPC_API_URL as string).trim();
-  const bitcoinRpcUser = process.env.BITCOIN_RPC_USER?.trim();
-  const bitcoinRpcPassword = process.env.BITCOIN_RPC_PASSWORD?.trim();
+  const bitcoinRpcUrl = (process.env.BTC_RPC_API_URL as string).trim();
   const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
   const resolveInputAddresses = (process.env.RESOLVE_INPUT_ADDRESSES ?? "").toString().toLowerCase().trim() === "true";
   const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
@@ -146,8 +138,6 @@ export function loadConfig(): AppConfig {
   }
   return {
     bitcoinRpcUrl,
-    bitcoinRpcUser,
-    bitcoinRpcPassword,
     pollIntervalMs,
     resolveInputAddresses,
     watch,
