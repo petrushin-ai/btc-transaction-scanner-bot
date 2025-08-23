@@ -123,3 +123,54 @@ docker run --rm --env-file .env btc-transaction-scanner-bot
 ]
 ```
 ```
+
+## Testing
+
+The project uses Bun's built-in test runner. Performance, latency, and scalability are validated via tests under `tests/`.
+
+Run the full suite (pretty metrics summary will be printed at the end):
+
+```bash
+bun test
+```
+
+Watch mode:
+
+```bash
+bun test --watch
+```
+
+What is covered:
+
+- Raw block parsing performance (time and memory delta)
+- Transaction matching time with 1000 watched addresses
+- Block discovery → processing latency (target ≤ 5s)
+- Scalability: supports 1000 concurrent addresses and sustained 7 TPS
+
+Pretty metrics summary example:
+
+```text
+Metrics Summary (5 metrics)
+
+  latency
+    block_discovery_to_processing_ms => 203 ms
+
+  matching
+    check_1000_addresses_ms => 2 ms  [activities=0]
+
+  raw-parser
+    mem_delta_mb => 33.8 MB
+    parse_block_ms => 20 ms  [txCount=1342]
+
+  scalability
+    process_7tps_10s_total_ms => 59 ms  [totalActivities=70]
+```
+
+CI-friendly JUnit report (optional):
+
+```bash
+bun test --reporter=junit --reporter-outfile=bun.xml
+```
+
+Bun test docs: https://bun.com/docs/cli/test
+```

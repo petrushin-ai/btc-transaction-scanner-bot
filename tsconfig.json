@@ -8,9 +8,10 @@
     "paths": {
       "@/*": ["src/*"]
     },
+    "types": ["bun-types"],
     "strict": true,
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "tests", "tests/**/*.ts"]
 }
 

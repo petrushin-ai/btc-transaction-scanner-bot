@@ -75,3 +75,29 @@ alwaysApply: false
 1) Load config → 2) Create `BitcoinRpcClient` → 3) `BitcoinService.connect()`
 → 4) `awaitNewBlock()` returns parsed block → 5) `checkTransactions(block, watch)`
 → 6) Activities list for watched addresses → 7) Emit structured JSON notifications via logger
+
+## Testing & Non-Functional Requirements (NFRs)
+
+### Test runner
+
+- Bun test runner (Jest-like API). Commands:
+  - `bun test` – run all tests
+  - `bun test --watch` – watch mode
+  - `bun test --reporter=junit --reporter-outfile=bun.xml` – CI JUnit output
+
+### Metrics & reporting
+
+- Tests emit in-memory metrics which are summarized at the end (colorized table) via a preload file `tests/setup.metrics.ts`.
+- No JSON metric noise during tests; only a final summary is printed.
+
+### Coverage
+
+- Performance of raw parsing: upper bounds on time and memory delta using fixtures
+- Matching throughput: checkTransactions time with 1000 addresses
+- Latency: block discovery to processing ≤ 5s using a mocked RPC
+- Scalability: ability to handle 1000 addresses and sustained 7 TPS
+
+### Extensibility
+
+- Thresholds can be parameterized via env variables if tighter CI budgets are needed.
+- Additional metrics can be emitted from tests using the helper in `tests/_metrics.ts` and will appear in the final summary.
