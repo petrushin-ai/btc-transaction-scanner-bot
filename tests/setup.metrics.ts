@@ -1,4 +1,5 @@
 import { afterAll } from "bun:test";
+import "./_metrics-preload";
 
 type Metric = {
   suite: string;

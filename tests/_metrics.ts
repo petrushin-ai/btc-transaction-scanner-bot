@@ -23,6 +23,13 @@ export function emitMetric(metric: Metric): void {
   } catch {
     // ignore
   }
+  // Persist to file to aggregate across workers/processes
+  try {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+    fs.appendFileSync(OUT_FILE, JSON.stringify(withTs) + "\n", "utf8");
+  } catch {
+    // ignore
+  }
   // Intentionally do NOT print or write JSON here; only the pretty summary will be shown.
 }
 

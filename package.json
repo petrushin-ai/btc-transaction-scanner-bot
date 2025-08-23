@@ -9,9 +9,9 @@
     "start": "bun src/index.ts",
     "example:rates": "bun src/example/currencyRates.ts",
     "healthcheck": "bun src/example/healthcheck.ts",
-    "fixtures:get-blocks": "bun tests/fetch-block-fixtures.ts",
-    "fixtures:update-addresses": "bun tests/update-addresses-from-fixtures.ts",
-    "test:compare": "bun tests/compare-raw-vs-verbose.ts",
+    "fixtures:get-blocks": "bun tests/utils/fetch-block-fixtures.ts",
+    "fixtures:update-addresses": "bun tests/utils/update-addresses-from-fixtures.ts",
+    "test:compare": "bun tests/utils/compare-raw-vs-verbose.ts",
     "test": "bun test --timeout=10000 --preload ./tests/setup.metrics.ts",
     "test:watch": "bun test --watch --timeout=10000 --preload ./tests/setup.metrics.ts"
   },

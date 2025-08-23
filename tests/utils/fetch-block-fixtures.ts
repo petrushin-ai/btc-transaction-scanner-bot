@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { BitcoinRpcClient } from "../src/infrastructure/bitcoin";
-import { loadConfig } from "../src/config";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import { loadConfig } from "@/config";
 
 async function ensureDir(dir: string): Promise<void> {
   await fs.promises.mkdir(dir, { recursive: true });
@@ -58,5 +58,6 @@ main().catch((err) => {
   console.error("Failed to fetch block fixtures:", message);
   process.exit(1);
 });
+
 
 
