@@ -38,7 +38,7 @@
       "named-imports-order": "case-insensitive",
       "grouped-imports": true,
       "groups": [
-        { "name": "external", "match": "^[a-z0-9@].*", "order": 1 },
+        { "name": "external", "match": "^(?:@[^/].*|[a-z0-9].*)", "order": 1 },
         { "name": "internal", "match": "^@/.*", "order": 2 },
         { "name": "relative", "match": "^\\.", "order": 3 }
       ]
