@@ -6,17 +6,32 @@ import {
   getLoggingEnv,
   findProjectRoot,
   ensureFile,
-  normalizeJsonFileName,
+  normalizeLogFileName,
   createFileDestination,
   buildStdoutStream,
+  createJsonArrayFileDestination,
+  makeCallable,
 } from "./helpers";
 
 export type AppLogger = PinoLogger;
 
+export type LoggerOptions = {
+  fileName?: string;
+  /** When true, write NDJSON lines to files; otherwise maintain a JSON array */
+  ndjson?: boolean;
+};
+
 const cachedByFileName: Map<string, AppLogger> = new Map();
 
-export function getLogger(fileName?: string): AppLogger {
-  const cacheKey = (fileName && fileName.trim()) ? fileName.trim() : "__default__";
+function getLogger(): AppLogger;
+function getLogger(fileName: string): AppLogger;
+function getLogger(options: LoggerOptions): AppLogger;
+function getLogger(arg?: string | LoggerOptions): AppLogger {
+  const options: LoggerOptions = typeof arg === "string" ? { fileName: arg } : (arg || {});
+  const fileName = options.fileName?.trim();
+  const useNdjson = options.ndjson ?? false;
+
+  const cacheKey = `${fileName || "__default__"}::ndjson=${useNdjson ? "1" : "0"}`;
   const existing = cachedByFileName.get(cacheKey);
   if (existing) return existing;
   // Load .env files without performing any validation. This avoids coupling the
@@ -30,19 +45,24 @@ export function getLogger(fileName?: string): AppLogger {
 
   // Ensure directory and file exist for consistent behavior across environments
 
-  // Build multi-destination streams: always output to logs/output.json and stdout
-  const logFilePath = path.join(projectRoot, "logs", "output.json");
+  // Build multi-destination streams: always output to logs/output[.json|.ndjson] and stdout
+  const defaultLogFile = useNdjson ? "output.ndjson" : "output.json";
+  const logFilePath = path.join(projectRoot, "logs", defaultLogFile);
   ensureFile(logFilePath, "");
-  const fileStream = createFileDestination(logFilePath, environment === "development");
+  const fileStream = useNdjson
+    ? createFileDestination(logFilePath, environment === "development")
+    : createJsonArrayFileDestination(logFilePath);
   const stdoutStream = buildStdoutStream(logPretty);
 
   // Optionally add a secondary file stream logs/{fileName}.json
   let secondaryFileStream: pino.DestinationStream | undefined;
   if (fileName && fileName.trim()) {
-    const safeName = normalizeJsonFileName(fileName);
+    const safeName = normalizeLogFileName(fileName, useNdjson);
     const specificLogFilePath = path.join(projectRoot, "logs", safeName);
     ensureFile(specificLogFilePath, "");
-    secondaryFileStream = createFileDestination(specificLogFilePath, environment === "development");
+    secondaryFileStream = useNdjson
+      ? createFileDestination(specificLogFilePath, environment === "development")
+      : createJsonArrayFileDestination(specificLogFilePath);
   }
 
   const loggerInstance = pino(
@@ -65,7 +85,7 @@ export function getLogger(fileName?: string): AppLogger {
           "*.secret",
           "req.headers.authorization",
         ],
-        censor: "[Redacted]",
+        censor: "[*****]",
       },
     },
     pino.multistream([
@@ -78,7 +98,17 @@ export function getLogger(fileName?: string): AppLogger {
   return loggerInstance;
 }
 
-// Eagerly initialize a singleton for ergonomic named import usage
-export const logger: AppLogger = getLogger();
+// Create a callable logger that proxies to getLogger while exposing default logger methods
+type LoggerCallable = ((arg?: string | LoggerOptions) => AppLogger) & AppLogger;
+
+const defaultLoggerInstance: AppLogger = getLogger();
+
+export const logger: LoggerCallable = makeCallable(
+  (...args: unknown[]) => {
+    const first = args[0] as unknown as string | LoggerOptions | undefined;
+    return first === undefined ? getLogger() : (getLogger as any)(first);
+  },
+  defaultLoggerInstance,
+) as unknown as LoggerCallable;
 
 

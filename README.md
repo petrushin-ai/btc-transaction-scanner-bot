@@ -51,6 +51,30 @@ Variables (with defaults and purpose):
 - `LOG_SERVICE_NAME` (default: `btc-transaction-scanner-bot`)
   - Service name injected into logs.
 
+#### File output format
+
+By default, file logs are written as a valid JSON array where every log event is appended as a new array element. This keeps `logs/output.json` (and `logs/<custom>.json`) always valid JSON that can be parsed directly. In NDJSON mode, files use the `.ndjson` extension (e.g., `logs/output.ndjson`, `logs/<custom>.ndjson`).
+
+If you prefer newline-delimited JSON (NDJSON), pass `{ ndjson: true }` when obtaining a logger.
+
+Examples:
+
+```ts
+import { getLogger } from "./src/infrastructure/logger";
+
+// Default: JSON array files (logs/output.json)
+const logger = getLogger();
+logger.info({ hello: "world" });
+
+// Named file with default array behavior -> logs/my-task.json
+const taskLogger = getLogger({ fileName: "my-task" });
+taskLogger.info({ step: 1 });
+
+// NDJSON mode for files (writes to logs/stream.ndjson)
+const ndjsonLogger = getLogger({ fileName: "stream", ndjson: true });
+ndjsonLogger.info({ event: "start" });
+```
+
 ### Currency
 
 - `API_KEY_COINMARKETCAP` (required)

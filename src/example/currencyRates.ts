@@ -1,7 +1,10 @@
 import { CoinMarketCapClient } from "@/infrastructure";
 import { CurrencyService } from "@/application/services";
-import { logger } from "@/infrastructure/logger";
+import { logger as getLogger } from "@/infrastructure/logger";
 import { loadConfig } from "@/config";
+
+// Use logger that writes NDJSON lines to logs/currency_rates.ndjson
+const logger = getLogger({ fileName: "currency_rates" });
 
 async function main() {
   const config = loadConfig();
@@ -17,12 +20,11 @@ async function main() {
   ]);
 
   // Output as JSON suitable for stdout processing
-  const out = {
+  logger.info({
     type: "currency.rates",
-    time: new Date().toISOString(),
+    curr_req_time: new Date().toISOString(),
     rates: [btcUsdt, usdtUsd],
-  } as const;
-  logger.info(out);
+  });
 }
 
 if (import.meta.main) {
