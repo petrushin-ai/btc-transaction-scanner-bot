@@ -170,7 +170,7 @@ What is covered:
 Pretty metrics summary example:
 
 ```text
-Metrics Summary (5 metrics)
+Metrics Summary (4 metrics)
 
   latency
     block_discovery_to_processing_ms => 203 ms
@@ -179,11 +179,12 @@ Metrics Summary (5 metrics)
     check_1000_addresses_ms => 2 ms  [activities=0]
 
   raw-parser
-    mem_delta_mb => 33.8 MB
+    mem_max_mb => 46560 MB
     parse_block_ms => 20 ms  [txCount=1342]
 
   scalability
     process_7tps_10s_total_ms => 59 ms  [totalActivities=70]
+    max_measured_tps => 9 tps
 ```
 
 CI-friendly JUnit report (optional):

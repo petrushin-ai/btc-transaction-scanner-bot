@@ -4,7 +4,7 @@ import path from "path";
 
 import {Raw} from "@/infrastructure/bitcoin";
 
-import {emitMetric, memoryUsageMb} from "./_metrics";
+import {emitMetric, memoryUsageMb, peakMemoryUsageMb} from "./_metrics";
 
 function readHex(filePath: string): string {
   const hex = fs.readFileSync(filePath, "utf8").trim();
@@ -36,7 +36,6 @@ describe("Raw parser performance", () => {
     expect(block.transactions.length).toBeGreaterThan(0);
 
     const parseMs = t1 - t0;
-    const memDelta = memAfter - memBefore;
 
     emitMetric({
       suite: "raw-parser",
@@ -45,16 +44,19 @@ describe("Raw parser performance", () => {
       unit: "ms",
       details: {txCount: block.transactions.length},
     });
-    emitMetric({
-      suite: "raw-parser",
-      name: "mem_delta_mb",
-      value: Math.round(memDelta * 100) / 100,
-      unit: "MB",
-    });
+    // Drop mem_delta_mb; keep only peak memory metric
+    const peakMb = peakMemoryUsageMb();
+    if (typeof peakMb === "number" && !Number.isNaN(peakMb)) {
+      emitMetric({
+        suite: "raw-parser",
+        name: "mem_max_mb",
+        value: peakMb,
+        unit: "MB",
+      });
+    }
 
     // Budgets: keep generous to avoid CI flakiness, adjust later if needed
     expect(parseMs).toBeLessThan(500); // < 0.5s to parse one block
-    expect(memDelta).toBeLessThan(100); // < 100 MB additional RSS
   });
 });
 

@@ -98,13 +98,7 @@ describe("Throughput (TPS) load test", () => {
       maxMeasured = Math.max(maxMeasured, measuredTps);
       if (tps === 10) baselineMeasured10 = measuredTps;
 
-      emitMetric({
-        suite: "throughput",
-        name: `measured_tps_${tps}`,
-        value: Math.round(measuredTps),
-        unit: "tps",
-        details: { seconds: durationSeconds, processedTx, expectedTx },
-      });
+      // Do not emit per-level measured TPS metrics; keep only the max across levels
 
       // Sanity: we should process all tx generated
       expect(processedTx).toBe(expectedTx);

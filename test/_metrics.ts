@@ -45,3 +45,17 @@ export function memoryUsageMb(): number {
 }
 
 
+export function peakMemoryUsageMb(): number | undefined {
+    try {
+        // Bun implements Node's process.resourceUsage; maxRSS is in kilobytes per Node docs
+        // Convert to MB with 2 decimals
+        // Some environments may not support it; guard accordingly
+        const ru: any = (process as any).resourceUsage?.();
+        if (!ru || typeof ru.maxRSS !== "number") return undefined;
+        return Math.round(((ru.maxRSS / 1024) * 100)) / 100;
+    } catch {
+        return undefined;
+    }
+}
+
+
