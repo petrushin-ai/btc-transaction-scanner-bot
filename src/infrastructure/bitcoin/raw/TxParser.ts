@@ -56,12 +56,13 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   const voutCount = reader.readVarInt();
   const outputs = [] as ParsedTx["outputs"];
   for (let i = 0; i < voutCount; i++) {
-    const valueSats = reader.readUInt64LE();
+    // Use number path for sats for speed; BTC supply fits in 53 bits safely
+    const valueSats = reader.readUInt64LEAsNumber();
     const pkScriptLen = reader.readVarInt();
     const pkScript = reader.readSlice(pkScriptLen);
     const decoded = decodeScriptPubKey(pkScript, network);
     outputs.push({
-      valueBtc: btcFromSats(valueSats),
+      valueBtc: btcFromSats(BigInt(valueSats)),
       address: decoded.address,
       scriptType: decoded.type,
       opReturnDataHex: decoded.opReturnDataHex,

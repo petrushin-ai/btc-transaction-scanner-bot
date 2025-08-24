@@ -62,6 +62,17 @@
 - **Reason**: Evaluate readability and possible micro‑optimizations from utility functions.
 - **Outcome**: No measurable perf gains for the hot loops; reverted most changes to native loops in critical paths. We kept only changes that don’t regress performance.
 
+### 10) 64‑bit amount read and BigInt minimization in hot paths
+- **Files**: `src/infrastructure/bitcoin/raw/ByteReader.ts`, `src/infrastructure/bitcoin/raw/TxParser.ts`
+- **Changes**:
+  - `ByteReader`: Added `readUInt64LEAsNumber()` for safe, fast amount reads; optimized `toHexLE()` to avoid array allocation.
+  - `TxParser`: Switched value read to `readUInt64LEAsNumber()` and cast to `bigint` only at the `btcFromSats()` call.
+- **Reason**:
+  - Use zero‑copy `Buffer.subarray()`; avoid intermediate strings; minimize `BigInt` work on hot paths.
+  - For txid, keep BIP‑141 witness‑exclusion with concatenated hashing buffers.
+  - Amounts are < 2^53, so the numeric path is safe and faster in JS runtimes.
+- **Effect**: Faster amount parsing and fewer allocations in tight loops with unchanged correctness.
+
 ## Measured outcomes (local runs)
 - throughput `max_measured_tps`: ~31k → ~37k (noise exists, but trend improved after parser/caching tweaks)
 - raw‑parser `parse_block_ms`: ~1 ms → ~1 ms (unchanged; already fast)

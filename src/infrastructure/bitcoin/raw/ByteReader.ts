@@ -1,5 +1,7 @@
 import { createHash } from "crypto";
 
+const HEX_CHARS = "0123456789abcdef";
+
 export class ByteReader {
   private readonly buffer: Buffer;
   private offset: number;
@@ -51,6 +53,26 @@ export class ByteReader {
     return (hi << 32n) | lo;
   }
 
+  /**
+   * Read an unsigned 64-bit little-endian integer as a JavaScript number.
+   * Safe for Bitcoin amounts (max 2.1e15 < 2^53).
+   */
+  readUInt64LEAsNumber(): number {
+    const lo = this.buffer.readUInt32LE(this.offset);
+    const hi = this.buffer.readUInt32LE(this.offset + 4);
+    this.offset += 8;
+    // Ensure we remain within Number.MAX_SAFE_INTEGER
+    // hi must be < 2^21 for the sum to be safe (since (hi << 32) < 2^53)
+    if (hi >= 0x200000) {
+      // Fallback to bigint path for extremely large values (not expected for BTC amounts)
+      const big = (BigInt(hi) << 32n) | BigInt(lo);
+      const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
+      if (big > maxSafe) throw new Error("uint64 exceeds MAX_SAFE_INTEGER");
+      return Number(big);
+    }
+    return lo + hi * 4294967296; // 2^32
+  }
+
   readVarInt(): number {
     const first = this.readUInt8();
     if (first < 0xfd) return first;
@@ -85,17 +107,15 @@ export function sha256dMany(buffers: Buffer[]): Buffer {
 
 export function toHexLE(buffer: Buffer): string {
   // Render as big-endian hex of the reversed bytes (for txid/hash display)
-  const hexChars = "0123456789abcdef";
   const len = buffer.length;
-  // Each byte -> 2 chars
-  const out = new Array(len * 2);
-  // Reverse order without allocating a copy, and fill hex chars
-  for (let i = 0; i < len; i++) {
-    const b = buffer[len - 1 - i];
-    out[i * 2] = hexChars[(b >>> 4) & 0x0f];
-    out[i * 2 + 1] = hexChars[b & 0x0f];
+  let out = "";
+  // Reverse order without allocating a copy; append two chars per byte
+  for (let i = len - 1; i >= 0; i--) {
+    const b = buffer[i];
+    out += HEX_CHARS[(b >>> 4) & 0x0f];
+    out += HEX_CHARS[b & 0x0f];
   }
-  return out.join("");
+  return out;
 }
 
 export function btcFromSats(sats: bigint): number {
