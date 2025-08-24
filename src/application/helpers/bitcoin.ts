@@ -123,3 +123,79 @@ export function normalizeWatchedAddresses(
   return out;
 }
 
+// Lightweight Bloom filter for address membership checks
+// Uses double hashing with two 32-bit hashes and k functions: h_i(x) = h1 + i*h2 mod m
+export type AddressBloomFilter = {
+  readonly sizeBits: number;
+  readonly numHashFunctions: number;
+  mightContain(value: string): boolean;
+};
+
+function fnv1a32(str: string): number {
+  let hash = 0x811c9dc5 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+}
+
+function djb2_32(str: string): number {
+  let hash = 5381 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0; // hash * 33 + c
+  }
+  return hash >>> 0;
+}
+
+export function createAddressBloomFilter(addresses: string[], falsePositiveRate: number = 0.01): AddressBloomFilter | undefined {
+  const n = addresses.length >>> 0;
+  if (!n) return undefined;
+  const p = Math.min(Math.max(falsePositiveRate, 1e-6), 0.5);
+  const ln2 = Math.log(2);
+  const mFloat = Math.ceil(-(n * Math.log(p)) / (ln2 * ln2));
+  const m = Math.max(64, mFloat); // at least 64 bits
+  const k = Math.max(1, Math.round((m / n) * ln2));
+
+  const numWords = Math.ceil(m / 32);
+  const bits = new Uint32Array(numWords);
+
+  const setBit = (idx: number) => {
+    const word = (idx / 32) | 0;
+    const bit = idx % 32;
+    bits[word] |= (1 << bit) >>> 0;
+  };
+
+  const indexFor = (s: string, i: number): number => {
+    // double hashing: (h1 + i*h2) % m; ensure non-zero h2
+    const h1 = fnv1a32(s);
+    let h2 = djb2_32(s);
+    if (h2 === 0) h2 = 0x27d4eb2d; // avalanche constant if djb2 returns 0
+    const x = (h1 + Math.imul(i, h2)) >>> 0;
+    return x % m;
+  };
+
+  for (const a of addresses) {
+    for (let i = 0; i < k; i++) {
+      setBit(indexFor(a, i));
+    }
+  }
+
+  const testBit = (idx: number) => {
+    const word = (idx / 32) | 0;
+    const bit = idx % 32;
+    return (bits[word] & ((1 << bit) >>> 0)) !== 0;
+  };
+
+  return {
+    sizeBits: m,
+    numHashFunctions: k,
+    mightContain(value: string): boolean {
+      for (let i = 0; i < k; i++) {
+        if (!testBit(indexFor(value, i))) return false;
+      }
+      return true;
+    },
+  };
+}
+

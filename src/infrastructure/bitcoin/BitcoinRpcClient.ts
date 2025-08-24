@@ -27,10 +27,6 @@ export class BitcoinRpcClient {
   constructor(opts: BitcoinRpcClientOptions) {
     this.url = opts.url;
     this.timeoutMs = opts.timeoutMs ?? 10000;
-    if (opts.username && opts.password) {
-      const encoded = Buffer.from(`${opts.username}:${opts.password}`).toString("base64");
-      this.authHeader = `Basic ${encoded}`;
-    }
   }
 
   private async call<T>(method: string, params: unknown[] = []): Promise<T> {

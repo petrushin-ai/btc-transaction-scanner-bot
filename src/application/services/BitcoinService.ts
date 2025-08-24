@@ -1,3 +1,4 @@
+import {createAddressBloomFilter, type AddressBloomFilter} from "@/application/helpers/bitcoin";
 import {BitcoinRpcClient, Raw} from "@/infrastructure/bitcoin";
 import {
   NULL_TXID_64,
@@ -37,6 +38,7 @@ export class BitcoinService implements BlockchainService {
     sourceRef: WatchedAddress[] | undefined;
     watchSet: Map<string, string | undefined>;
     labelIndex: Map<string, { address: string; label?: string }[]>;
+    bloom?: AddressBloomFilter;
   };
   // LRU-ish cache for previous transactions to minimize repeat RPCs
   private _prevTxCache: Map<string, any> = new Map();
@@ -69,7 +71,9 @@ export class BitcoinService implements BlockchainService {
         labelIndex.set(key, arr);
       }
     }
-    this._watchedCache = {sourceRef: watched, watchSet, labelIndex};
+    const addresses = watched.map((w) => w.address);
+    const bloom = createAddressBloomFilter(addresses, 0.01);
+    this._watchedCache = {sourceRef: watched, watchSet, labelIndex, bloom};
   }
 
   /** Read-only view of the precomputed watch set. */
@@ -233,14 +237,17 @@ export class BitcoinService implements BlockchainService {
   checkTransactions(block: ParsedBlock, watched: WatchedAddress[]): AddressActivity[] {
     let watchSet: Map<string, string | undefined>;
     let labelIndex: Map<string, { address: string; label?: string }[]>;
+    let bloom: AddressBloomFilter | undefined;
     // Prefer prebuilt cache when available and the same source list is used
     if (this._watchedCache && this._watchedCache.sourceRef === watched) {
       watchSet = this._watchedCache.watchSet;
       labelIndex = this._watchedCache.labelIndex;
+      bloom = this._watchedCache.bloom;
     } else if (this._watchedCache && (!watched || watched.length === 0)) {
       // If caller intentionally passes an empty list (or undefined in future), use prebuilt
       watchSet = this._watchedCache.watchSet;
       labelIndex = this._watchedCache.labelIndex;
+      bloom = this._watchedCache.bloom;
     } else {
       // Build a scoped cache for the provided watched list
       watchSet = new Map<string, string | undefined>();
@@ -256,7 +263,9 @@ export class BitcoinService implements BlockchainService {
           labelIndex.set(key, arr);
         }
       }
-      this._watchedCache = {sourceRef: watched, watchSet, labelIndex};
+      const addresses = watched.map((w) => w.address);
+      bloom = createAddressBloomFilter(addresses, 0.01);
+      this._watchedCache = {sourceRef: watched, watchSet, labelIndex, bloom};
     }
 
     const activities: AddressActivity[] = [];
@@ -283,6 +292,7 @@ export class BitcoinService implements BlockchainService {
       for (const out of tx.outputs) {
         const addr = out.address;
         if (!addr) continue;
+        if (bloom && !bloom.mightContain(addr)) continue;
         if (!watchSet.has(addr)) continue;
         incoming.set(addr, (incoming.get(addr) || 0) + out.valueBtc);
       }
@@ -290,6 +300,7 @@ export class BitcoinService implements BlockchainService {
       for (const input of tx.inputs) {
         const addr = input.address;
         if (!addr || !input.valueBtc) continue;
+        if (bloom && !bloom.mightContain(addr)) continue;
         if (!watchSet.has(addr)) continue;
         outgoing.set(addr, (outgoing.get(addr) || 0) + input.valueBtc);
       }
@@ -349,6 +360,7 @@ export class BitcoinService implements BlockchainService {
           if (opLower.includes(labelKey)) {
             for (const item of items) {
               if (matchedAddressesThisTx.has(item.address)) continue;
+              if (bloom && !bloom.mightContain(item.address)) continue;
               if (!watchSet.has(item.address)) continue;
               activities.push({
                 address: item.address,

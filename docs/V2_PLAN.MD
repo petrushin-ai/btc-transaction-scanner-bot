@@ -17,7 +17,7 @@
 
 ### Watched Address Handling
 
-- [ ] Normalization and indexing: Normalize addresses (case rules, bech32 casing) once. Build watchSet and a labelIndex off-process at startup, expose as an immutable structure in BitcoinService.
+- [x] Normalization and indexing: Normalize addresses (case rules, bech32 casing) once. Build watchSet and a labelIndex off-process at startup, expose as an immutable structure in BitcoinService.
 - [ ] Efficient membership: For 1k–100k addresses, consider a Bloom filter plus exact set to cut hot-path checks.
 
 ### RPC Client and Resilience
@@ -26,12 +26,10 @@
 - [ ] Retries with backoff: Add exponential backoff with jitter for transient RPC failures; classify common Bitcoin Core error codes (e.g., -28 warming up) for smart retry.
 - [ ] Circuit breaker: Trip on sustained failures; surface degraded health; auto-recover with half-open probes.
 - [ ] Batching and pooling: Generalize batch calls and add a concurrency limiter per method. Ensure getRawTransactionVerboseBatch exists and is used where appropriate.
-- [ ] Type correctness: Fix BitcoinRpcClientOptions to include username (it’s used in the constructor). Strongly type request/response shapes and error envelopes.
 - [ ] Timeouts per call: Differentiate timeouts for getblockcount, getblockhash, getblock, getrawtransaction, tuned by payload size.
 
 ### Currency Rates and USD Computation
 
-- [ ] Provider abstraction: Keep CoinMarketCapClient, add secondary providers (e.g., CoinGecko) with weighted fallback. Fail open with stale-cache grace period and explicit “stale” flag.
 - [ ] Cache strategy: Maintain in-memory hot cache and file cache; add TTL jitter, negative caching on 4xx/5xx, and circuit breaker on provider errors.
 - [ ] Precision: Use decimal math (e.g., big.js) for rate × amount, with consistent rounding policy and currency formatting.
 
