@@ -3,6 +3,7 @@
 This document lists the internal domain events and their JSON structure. Unless noted, timestamps are ISO‑8601 strings; heights are integers; `block.time` is UNIX epoch seconds; `valueBtc` is a number in BTC; `valueUsd` is a number in USD when available.
 
 Compatibility policy:
+
 - v1 is additive‑friendly. New optional fields may be added; existing fields will not change semantics.
 
 ### BlockDetected (v1)
@@ -19,6 +20,7 @@ Compatibility policy:
 ```
 
 Notes:
+
 - **height**: chain height after new block connects.
 - **hash**: block hash.
 
@@ -50,6 +52,7 @@ Notes:
 ```
 
 Notes:
+
 - **block.time**: UNIX seconds from the node.
 - **outputs.scriptType**: matches Bitcoin Core `scriptPubKey.type`.
 
@@ -76,6 +79,7 @@ Notes:
 ```
 
 Notes:
+
 - **direction**: "in" for net positive to the address, "out" for net negative.
 - **valueUsd**: present only when USD rate is configured.
 - **OP_RETURN**: echoed if present anywhere in the tx.
@@ -95,6 +99,7 @@ Notes:
 ```
 
 Notes:
+
 - **channel**: one of "logger", "webhook", "stdout", "file", "kafka", "nats".
 - **details**: sink-defined payload; best-effort context for audits/metrics.
 
@@ -113,9 +118,11 @@ Notes:
 ```
 
 Notes:
+
 - Indicates a rollback of the block at `height`; downstream systems may need to compensate.
 
 ### Units and field notes (quick reference)
+
 - **timestamp**: ISO‑8601 string (UTC)
 - **height**: integer
 - **hash/txid**: hex string

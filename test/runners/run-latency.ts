@@ -66,13 +66,13 @@ export async function measureLatency() {
   return { suite: "proc-latency", latencyMs };
 }
 
-if (import.meta.main) {
-  measureLatency().then((data) => {
-    console.log(JSON.stringify(data));
-  }).catch((err) => {
-    console.error(String((err as any)?.message || err));
-    process.exit(1);
-  });
+if ( import.meta.main ) {
+  measureLatency().then( (data) => {
+    console.log( JSON.stringify( data ) );
+  } ).catch( (err) => {
+    console.error( String( (err as any)?.message || err ) );
+    process.exit( 1 );
+  } );
 }
 
 

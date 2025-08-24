@@ -1,6 +1,7 @@
 ## Optimizations made (current session)
 
 ### 1) Raw parser: reduce allocations in `TxParser`
+
 - **File**: `src/infrastructure/bitcoin/raw/TxParser.ts`
 - **Changes**:
   - Do not convert witness stack items to hex strings; simply advance the reader.
@@ -10,18 +11,21 @@
 - **Effect**: Lower peak memory and GC pressure during block parsing; contributes to higher measured throughput.
 
 ### 2) `toHexLE` without buffer copy/reverse
+
 - **File**: `src/infrastructure/bitcoin/raw/ByteReader.ts`
 - **Change**: Replaced `Buffer.from(buffer).reverse().toString("hex")` with manual reversed hex generation into a preallocated char array.
 - **Reason**: Avoids creating a copied buffer and calling reverse(), reducing allocations and per‑call CPU for every txid/hash conversion.
 - **Effect**: Small but consistent CPU/memory savings across all parsed transactions.
 
 ### 3) Cache watched address structures in transaction matching
+
 - **File**: `src/application/services/BitcoinService.ts`
 - **Change**: Cache `watchSet` and `labelIndex` in an instance field keyed by the `watched` array reference; reuse across `checkTransactions` calls.
 - **Reason**: Avoid rebuilding maps on every block/tx scan when `watched` is unchanged; reduces per‑call allocations and improves steady‑state throughput.
 - **Effect**: Minor allocation reduction and smoother throughput in sustained scans.
 
 ### 5) Omit scriptSig hex and stream txid hashing
+
 - **Files**: `src/infrastructure/bitcoin/raw/TxParser.ts`, `src/infrastructure/bitcoin/raw/ByteReader.ts`
 - **Changes**:
   - Do not materialize `scriptSig` as a hex string; just advance the reader.
@@ -30,24 +34,28 @@
 - **Effect**: Reduced allocations during transaction parsing; slight CPU win.
 
 ### 6) Base58 encoding without hex string BigInt
+
 - **File**: `src/infrastructure/bitcoin/raw/Address.ts`
 - **Change**: Build `BigInt` directly from bytes instead of `buffer.toString("hex")`.
 - **Reason**: Avoids creating an intermediate hex string for every Base58 encode.
 - **Effect**: Lower GC pressure when rendering base58 addresses.
 
 ### 7) Base58Check preallocation (no Buffer.concat)
+
 - **File**: `src/infrastructure/bitcoin/raw/Address.ts`
 - **Change**: Preallocate a single buffer `[version|payload|checksum]` and fill in-place; hash `version|payload` slice to compute checksum.
 - **Reason**: Avoid Buffer.concat() x2 and extra ephemeral buffers in hot address encoding path.
 - **Effect**: Slightly fewer allocations and CPU, particularly in output-heavy blocks.
 
 ### 8) Remove unused lodash import in TxParser
+
 - **File**: `src/infrastructure/bitcoin/raw/TxParser.ts`
 - **Change**: Drop unused `lodash-es` import.
 - **Reason**: Minor cleanup; ensures no accidental bundling or side effects.
 - **Effect**: None functionally; keeps hot file minimal.
 
 ### 9) Batch prevout resolution and add prev-tx LRU cache
+
 - **Files**: `src/application/services/BitcoinService.ts`, `src/infrastructure/bitcoin/BitcoinRpcClient.ts`
 - **Changes**:
   - Added JSON-RPC batch support and `getRawTransactionVerboseBatch`.
@@ -57,12 +65,14 @@
 - **Effect**: Lower RPC round-trips, faster block processing when `RESOLVE_INPUT_ADDRESSES=true`.
 
 ### 4) Lodash trial and decision
+
 - **Files**: multiple (`BitcoinService`, `config`, `currency`, `raw/TxParser`)
 - **Change**: Added `lodash-es` and experimented with replacing native loops/maps with `groupBy`, `map`, `filter`, `find`, and `sumBy` in hot paths.
 - **Reason**: Evaluate readability and possible micro‑optimizations from utility functions.
 - **Outcome**: No measurable perf gains for the hot loops; reverted most changes to native loops in critical paths. We kept only changes that don’t regress performance.
 
 ### 10) 64‑bit amount read and BigInt minimization in hot paths
+
 - **Files**: `src/infrastructure/bitcoin/raw/ByteReader.ts`, `src/infrastructure/bitcoin/raw/TxParser.ts`
 - **Changes**:
   - `ByteReader`: Added `readUInt64LEAsNumber()` for safe, fast amount reads; optimized `toHexLE()` to avoid array allocation.
@@ -74,6 +84,7 @@
 - **Effect**: Faster amount parsing and fewer allocations in tight loops with unchanged correctness.
 
 ### 11) Zero-copy safe parsing and defensive bounds checks
+
 - **Files**: `src/infrastructure/bitcoin/raw/ByteReader.ts`, `src/infrastructure/bitcoin/raw/Script.ts`, `src/infrastructure/bitcoin/raw/TxParser.ts`
 - **Changes**:
   - Added explicit bounds checks to `ByteReader` fixed-width reads: `readUInt8`, `readUInt16LE`, `readUInt32LE`, `readUInt64LE`, `readUInt64LEAsNumber`, and `readSlice` (guard negative lengths and out-of-range reads).
@@ -83,6 +94,7 @@
 - **Effect**: Safer parsing (prevents out-of-bounds reads) with unchanged behavior and performance; all tests pass. Zero-copy characteristics maintained for scripts and witness data.
 
 ## Measured outcomes (local runs)
+
 - throughput `peak_ramp_avg_tps_2s`: ~31k → ~37k (noise exists, but trend improved after parser/caching tweaks)
 - raw‑parser `parse_block_ms`: ~1 ms → ~1 ms (unchanged; already fast)
 - raw‑parser `mem_max_mb`: previously misreported; now ~97–98 MB with reduced allocations
@@ -90,6 +102,7 @@
 Note: `peak_ramp_avg_tps_2s` is the best average TPS across short ramp runs; `max_block_tps_100s` is the single fastest block TPS observed in a 100s sustained run, and may be higher than the ramp average. `max_measured_tps` is the canonical per-block instantaneous peak (identical in value to `max_block_tps_100s` during the 100s run) and is listed first in the throughput summary for quick reference.
 
 ## Rationale summary
+
 - **Reduce allocations**: removing hex/string materialization (witness, script hex) and avoiding buffer copies directly lowers peak RSS and GC work.
 - **Avoid unnecessary work**: only compute/retain data that the app consumes.
 - **Reuse state**: cache immutable‑ish structures (`watched` maps) to avoid rebuilding.

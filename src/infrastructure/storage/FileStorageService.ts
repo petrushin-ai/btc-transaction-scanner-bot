@@ -5,22 +5,32 @@ export type WriteOptions = { encoding?: BufferEncoding; flag?: string } | Buffer
 
 export interface FileStorageService {
   fileExists(filePath: string): boolean;
+
   ensureDir(dirPath: string): void;
+
   ensureFile(filePath: string, initialContent?: string): void;
+
   readFile(filePath: string, encoding?: BufferEncoding): string;
+
   writeFile(filePath: string, content: string | Buffer, options?: WriteOptions): void;
+
   open(filePath: string, flags: string): number;
+
   fstat(fd: number): fs.Stats;
+
   read(fd: number, buffer: Buffer, offset: number, length: number, position: number): number;
+
   write(fd: number, buffer: Buffer, offset: number, length: number, position: number): number;
+
   ftruncate(fd: number, len: number): void;
+
   close(fd: number): void;
 }
 
 class NodeFsFileStorageService implements FileStorageService {
   fileExists(filePath: string): boolean {
     try {
-      fs.accessSync(filePath, fs.constants.F_OK);
+      fs.accessSync( filePath, fs.constants.F_OK );
       return true;
     } catch {
       return false;
@@ -29,17 +39,17 @@ class NodeFsFileStorageService implements FileStorageService {
 
   ensureDir(dirPath: string): void {
     try {
-      fs.mkdirSync(dirPath, { recursive: true });
+      fs.mkdirSync( dirPath, { recursive: true } );
     } catch {
       // noop
     }
   }
 
   ensureFile(filePath: string, initialContent: string = ""): void {
-    this.ensureDir(path.dirname(filePath));
+    this.ensureDir( path.dirname( filePath ) );
     try {
-      if (!this.fileExists(filePath)) {
-        fs.writeFileSync(filePath, initialContent, { encoding: "utf-8", flag: "wx" });
+      if ( !this.fileExists( filePath ) ) {
+        fs.writeFileSync( filePath, initialContent, { encoding: "utf-8", flag: "wx" } );
       }
     } catch {
       // noop
@@ -47,36 +57,36 @@ class NodeFsFileStorageService implements FileStorageService {
   }
 
   readFile(filePath: string, encoding: BufferEncoding = "utf-8"): string {
-    return fs.readFileSync(filePath, encoding);
+    return fs.readFileSync( filePath, encoding );
   }
 
   writeFile(filePath: string, content: string | Buffer, options?: WriteOptions): void {
-    fs.writeFileSync(filePath, content as any, options as any);
+    fs.writeFileSync( filePath, content as any, options as any );
   }
 
   open(filePath: string, flags: string): number {
-    return fs.openSync(filePath, flags);
+    return fs.openSync( filePath, flags );
   }
 
   fstat(fd: number): fs.Stats {
-    return fs.fstatSync(fd);
+    return fs.fstatSync( fd );
   }
 
   read(fd: number, buffer: Buffer, offset: number, length: number, position: number): number {
-    return fs.readSync(fd, buffer, offset, length, position);
+    return fs.readSync( fd, buffer, offset, length, position );
   }
 
   write(fd: number, buffer: Buffer, offset: number, length: number, position: number): number {
-    return fs.writeSync(fd, buffer, offset, length, position);
+    return fs.writeSync( fd, buffer, offset, length, position );
   }
 
   ftruncate(fd: number, len: number): void {
-    fs.ftruncateSync(fd, len);
+    fs.ftruncateSync( fd, len );
   }
 
   close(fd: number): void {
     try {
-      fs.closeSync(fd);
+      fs.closeSync( fd );
     } catch {
       // noop
     }

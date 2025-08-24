@@ -11,12 +11,12 @@ export class HealthCheckService {
   ): Promise<HealthResult[]> {
     await bitcoin.connect();
 
-    const [ btcHealth, curHealth ] = await Promise.all([
+    const [ btcHealth, curHealth ] = await Promise.all( [
       (async () => {
         try {
           return await bitcoin.ping();
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+        } catch ( err ) {
+          const message = err instanceof Error ? err.message : String( err );
           return {
             provider: "bitcoin-rpc",
             ok: false,
@@ -30,8 +30,8 @@ export class HealthCheckService {
       (async () => {
         try {
           return await currency.ping();
-        } catch (err) {
-          const message = err instanceof Error ? err.message : String(err);
+        } catch ( err ) {
+          const message = err instanceof Error ? err.message : String( err );
           return {
             provider: "coinmarketcap",
             ok: false,
@@ -42,17 +42,17 @@ export class HealthCheckService {
           } as HealthResult;
         }
       })(),
-    ]);
+    ] );
 
     // Always emit at debug level; logger decides visibility
-    logHealthResult(btcHealth);
-    logHealthResult(curHealth);
+    logHealthResult( btcHealth );
+    logHealthResult( curHealth );
 
-    if (!btcHealth.ok) {
-      throw new Error(`Bitcoin RPC health check failed: ${btcHealth.details && (btcHealth.details as any).error || "unknown error"}`);
+    if ( !btcHealth.ok ) {
+      throw new Error( `Bitcoin RPC health check failed: ${ btcHealth.details && (btcHealth.details as any).error || "unknown error" }` );
     }
-    if (!curHealth.ok) {
-      throw new Error(`Currency provider health check failed: ${curHealth.details && (curHealth.details as any).error || "unknown error"}`);
+    if ( !curHealth.ok ) {
+      throw new Error( `Currency provider health check failed: ${ curHealth.details && (curHealth.details as any).error || "unknown error" }` );
     }
 
     return [ btcHealth, curHealth ];

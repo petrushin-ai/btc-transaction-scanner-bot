@@ -6,6 +6,7 @@ export type SinkResult = { ok: true } | { ok: false; error: Error };
 
 export interface NotificationSink {
   readonly kind: SinkKind;
+
   send(event: AddressActivityFoundEvent): Promise<SinkResult>;
 }
 

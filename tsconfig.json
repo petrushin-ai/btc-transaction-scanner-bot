@@ -1,18 +1,25 @@
 {
   "compilerOptions": {
-    "lib": ["ESNext"],
+    "lib": [
+      "ESNext"
+    ],
     "module": "ESNext",
     "target": "ESNext",
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ]
     },
-    "types": ["bun-types"],
+    "types": [
+      "bun-types"
+    ],
     "strict": true,
     "noEmit": true
   },
-  "include": ["src",
+  "include": [
+    "src",
     "test",
     "test/**/*.ts"
   ]

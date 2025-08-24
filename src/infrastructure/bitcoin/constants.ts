@@ -83,7 +83,7 @@ export const NETWORKS: Record<Network, { p2pkh: number; p2sh: number; hrp: strin
 };
 
 // Common string constants
-export const NULL_TXID_64 = "0".repeat(64);
+export const NULL_TXID_64 = "0".repeat( 64 );
 
 // Service defaults
 export const PREV_TX_CACHE_MAX_DEFAULT = 1000;

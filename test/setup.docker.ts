@@ -3,22 +3,22 @@
 
 import { execFileSync } from "node:child_process";
 
-const inDocker = String(process.env.IN_DOCKER || "").trim() === "1";
-const skipDocker = String(process.env.SKIP_DOCKER || "").trim() === "1";
+const inDocker = String( process.env.IN_DOCKER || "" ).trim() === "1";
+const skipDocker = String( process.env.SKIP_DOCKER || "" ).trim() === "1";
 
-if (!inDocker && !skipDocker) {
+if ( !inDocker && !skipDocker ) {
   try {
     // Build and run tests in the test image with mounted logs/cache
     const cmd = [
       "docker build -f Dockerfile.test -t btc-transaction-scanner-bot:test .",
       "docker run --rm -e APP_ENV=production -e IN_DOCKER=1 -v $(pwd)/cache:/app/cache -v $(pwd)/logs:/app/logs btc-transaction-scanner-bot:test",
-    ].join(" && ");
-    execFileSync("sh", [ "-lc", cmd ], { stdio: "inherit" });
+    ].join( " && " );
+    execFileSync( "sh", [ "-lc", cmd ], { stdio: "inherit" } );
     // Exit after container run completes; prevent local tests from running
-    process.exit(0);
-  } catch (err) {
+    process.exit( 0 );
+  } catch ( err ) {
     // Propagate non-zero exit codes
-    process.exit(typeof (err as any)?.status === "number" ? (err as any).status : 1);
+    process.exit( typeof (err as any)?.status === "number" ? (err as any).status : 1 );
   }
 }
 

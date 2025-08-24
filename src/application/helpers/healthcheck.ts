@@ -10,10 +10,10 @@ export function logHealthResult(health: HealthResult): void {
     status: health.status,
     latencyMs: health.latencyMs
   } as const;
-  if (environment === "development") {
-    logger.info(payload);
+  if ( environment === "development" ) {
+    logger.info( payload );
   } else {
-    logger.debug(payload);
+    logger.debug( payload );
   }
 }
 

@@ -34,7 +34,7 @@ export function measureThroughput(iterationsInput?: number) {
   // Warm up parse once
   Raw.parseRawBlock( hex, "mainnet" );
 
-  const iterations = Number(iterationsInput ?? process.env.THROUGHPUT_RUNS ?? 50);
+  const iterations = Number( iterationsInput ?? process.env.THROUGHPUT_RUNS ?? 50 );
   const times: number[] = [];
   let totalTx = 0;
   for ( let i = 0; i < iterations; i++ ) {
@@ -67,13 +67,14 @@ export function measureThroughput(iterationsInput?: number) {
   };
   return out;
 }
-if (import.meta.main) {
+
+if ( import.meta.main ) {
   try {
     const data = measureThroughput();
-    console.log(JSON.stringify(data));
-  } catch (err) {
-    console.error(String((err as any)?.message || err));
-    process.exit(1);
+    console.log( JSON.stringify( data ) );
+  } catch ( err ) {
+    console.error( String( (err as any)?.message || err ) );
+    process.exit( 1 );
   }
 }
 

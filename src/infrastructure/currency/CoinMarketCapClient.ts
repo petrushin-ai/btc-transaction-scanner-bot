@@ -35,12 +35,12 @@ export class CoinMarketCapClient {
   }
 
   private async getJson<T>(path: string): Promise<T> {
-    const url = `${this.baseUrl}${path}`;
-    return fetchJson<T>(url, {
+    const url = `${ this.baseUrl }${ path }`;
+    return fetchJson<T>( url, {
       method: HTTP_METHOD.GET,
       headers: this.headers,
       timeoutMs: this.timeoutMs,
-    });
+    } );
   }
 
   /** Lightweight health-check. Prefer /v1/key/info to validate API key and connectivity.
@@ -63,7 +63,7 @@ export class CoinMarketCapClient {
           credits_left: info.credits_left,
         },
       };
-    } catch (err) {
+    } catch ( err ) {
       // Fallback to a very small public call that still requires the API key
       try {
         const started2 = Date.now();
@@ -76,9 +76,9 @@ export class CoinMarketCapClient {
           latencyMs,
           checkedAt: new Date().toISOString(),
         };
-      } catch (inner) {
+      } catch ( inner ) {
         const latencyMs = Date.now() - started;
-        const message = inner instanceof Error ? inner.message : String(inner);
+        const message = inner instanceof Error ? inner.message : String( inner );
         return {
           provider: "coinmarketcap",
           ok: false,
@@ -95,8 +95,8 @@ export class CoinMarketCapClient {
     // Supports crypto->crypto and crypto<->fiat pairs via /v2/tools/price-conversion
     // If base is crypto: symbol=base, convert=quote
     // If base is fiat and quote is crypto: symbol=quote, convert=base, then invert
-    if (isCrypto(base)) {
-      const { price, time } = await this.convertOne(base, quote);
+    if ( isCrypto( base ) ) {
+      const { price, time } = await this.convertOne( base, quote );
       return {
         base,
         quote,
@@ -105,8 +105,8 @@ export class CoinMarketCapClient {
         source: "coinmarketcap",
       };
     }
-    if (isFiat(base) && isCrypto(quote)) {
-      const { price, time } = await this.convertOne(quote, base);
+    if ( isFiat( base ) && isCrypto( quote ) ) {
+      const { price, time } = await this.convertOne( quote, base );
       const rate = price === 0 ? 0 : 1 / price;
       return {
         base,
@@ -116,9 +116,9 @@ export class CoinMarketCapClient {
         source: "coinmarketcap",
       };
     }
-    if (isFiat(base) && isFiat(quote)) {
+    if ( isFiat( base ) && isFiat( quote ) ) {
       // Only USD supported in types; trivial case
-      if (base === quote) {
+      if ( base === quote ) {
         return {
           base,
           quote,
@@ -128,41 +128,41 @@ export class CoinMarketCapClient {
         };
       }
     }
-    throw new Error(`Unsupported currency pair: ${base}/${quote}`);
+    throw new Error( `Unsupported currency pair: ${ base }/${ quote }` );
   }
 
   private async convertOne(
     symbol: string,
     convert: string
   ): Promise<{ price: number; time: string }> {
-    const path = `/v2/tools/price-conversion?amount=1&symbol=${encodeURIComponent(symbol)}&convert=${encodeURIComponent(convert)}`;
-    const json = await this.getJson<any>(path);
-      const data = Array.isArray(json?.data) ? json.data[0] : json?.data;
-      const q = data?.quote?.[convert];
-      if (q && typeof q.price === "number") {
-        const time = q.last_updated
-          || data?.last_updated
-          || json?.status?.timestamp
-          || new Date().toISOString();
-        return { price: q.price, time };
-      }
-      // Fallback to quotes/latest
-      return await this.fetchQuoteLatest(symbol, convert);
+    const path = `/v2/tools/price-conversion?amount=1&symbol=${ encodeURIComponent( symbol ) }&convert=${ encodeURIComponent( convert ) }`;
+    const json = await this.getJson<any>( path );
+    const data = Array.isArray( json?.data ) ? json.data[0] : json?.data;
+    const q = data?.quote?.[convert];
+    if ( q && typeof q.price === "number" ) {
+      const time = q.last_updated
+        || data?.last_updated
+        || json?.status?.timestamp
+        || new Date().toISOString();
+      return { price: q.price, time };
+    }
+    // Fallback to quotes/latest
+    return await this.fetchQuoteLatest( symbol, convert );
   }
 
   private async fetchQuoteLatest(symbol: string, convert: string): Promise<{
     price: number;
     time: string
   }> {
-    const path = `/v2/cryptocurrency/quotes/latest?symbol=${encodeURIComponent(symbol)}&convert=${encodeURIComponent(convert)}`;
-    const json = await this.getJson<any>(path);
-      const item = json?.data?.[symbol] || (Array.isArray(json?.data) ? json.data[0] : undefined);
-      const q = item?.quote?.[convert];
-      if (!q || typeof q.price !== "number") {
-        throw new Error(`CoinMarketCap malformed response for ${symbol}->${convert}`);
-      }
-      const time = q.last_updated || json?.status?.timestamp || new Date().toISOString();
-      return { price: q.price, time };
+    const path = `/v2/cryptocurrency/quotes/latest?symbol=${ encodeURIComponent( symbol ) }&convert=${ encodeURIComponent( convert ) }`;
+    const json = await this.getJson<any>( path );
+    const item = json?.data?.[symbol] || (Array.isArray( json?.data ) ? json.data[0] : undefined);
+    const q = item?.quote?.[convert];
+    if ( !q || typeof q.price !== "number" ) {
+      throw new Error( `CoinMarketCap malformed response for ${ symbol }->${ convert }` );
+    }
+    const time = q.last_updated || json?.status?.timestamp || new Date().toISOString();
+    return { price: q.price, time };
   }
 
   private async fetchKeyInfo(): Promise<{
@@ -170,17 +170,17 @@ export class CoinMarketCapClient {
     usage?: unknown;
     credits_left?: unknown
   }> {
-    const json = await this.getJson<any>(`/v1/key/info`);
-      const data = json?.data ?? {};
-      return {
-        plan: data?.plan,
-        usage: data?.usage,
-        credits_left: data?.credit_limit_monthly_reset || data?.credits_left,
-      };
+    const json = await this.getJson<any>( `/v1/key/info` );
+    const data = json?.data ?? {};
+    return {
+      plan: data?.plan,
+      usage: data?.usage,
+      credits_left: data?.credit_limit_monthly_reset || data?.credits_left,
+    };
   }
 
   private async fetchMap(): Promise<void> {
-    await this.getJson<void>(`/v1/cryptocurrency/map?limit=1`);
+    await this.getJson<void>( `/v1/cryptocurrency/map?limit=1` );
   }
 }
 

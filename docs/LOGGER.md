@@ -32,6 +32,7 @@ streamLog.info({ phase: "start" });
 ```
 
 Notes:
+
 - Import path may differ depending on where you call it from; the index exports are at `src/infrastructure/logger/index.ts`.
 - The logger is backed by `pino`. All standard Pino methods are available: `trace`, `debug`, `info`, `warn`, `error`, `fatal`.
 

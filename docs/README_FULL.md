@@ -84,6 +84,7 @@ bun run docker:dev:down
 ```
 
 Notes:
+
 - If you prefer not to use a file, you can supply addresses via the `WATCH_ADDRESSES` env var (CSV: `address[:label],address[:label],...`). File path is configurable via `WATCH_ADDRESSES_FILE` (default `./addresses.json`).
 - Set `BTC_RPC_API_URL` to any Bitcoin Core–compatible RPC endpoint (local node or a provider). Basic auth can be set with `BITCOIN_RPC_USER`/`BITCOIN_RPC_PASSWORD`.
 
@@ -314,6 +315,7 @@ Metrics Summary (4 metrics)
 ```
 
 Notes on throughput metrics:
+
 - max_measured_tps: highest instantaneous per-block TPS observed (printed first under throughput).
 - peak_ramp_avg_tps_2s: highest average TPS measured over short 2s ramps across levels.
 - avg_measured_tps_10s: average TPS over a fixed 10s run at high load.
@@ -584,19 +586,19 @@ Add new subscribers without touching core services. Example: send a webhook on e
 import type { EventService } from "./src/application/services";
 
 export function registerWebhook(events: EventService) {
-  events.subscribe({
+  events.subscribe( {
     event: "NotificationEmitted",
     name: "webhook-sink",
     concurrency: 4,
     retry: { maxRetries: 3, backoffMs: (n) => 250 * n },
     handler: async (ev) => {
-      await fetch("https://example.com/hook", {
+      await fetch( "https://example.com/hook", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(ev),
-      });
+        body: JSON.stringify( ev ),
+      } );
     },
-  });
+  } );
 }
 ```
 
