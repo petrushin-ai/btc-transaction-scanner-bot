@@ -53,7 +53,7 @@ The logger caches instances by `(fileName || "__default__", ndjson)`. Calling `l
 Environment variables (loaded from `.env`, `.env.local`, `.env.<env>`, `.env.<env>.local`):
 
 - **APP_ENV / NODE_ENV**: environment name; default `development`.
-- **LOG_LEVEL**: Pino level. Default: `debug` in development, otherwise `info`.
+- **LOG_LEVEL**: Pino level. Default: `trace` in development, otherwise `info`.
 - **LOG_PRETTY**: `true|false`. Pretty console output. Default: `true` in development, `false` otherwise.
 - **LOG_SERVICE_NAME**: service name added to logs. Default: `btc-transaction-scanner-bot`.
 

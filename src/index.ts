@@ -19,9 +19,6 @@ import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 async function main() {
   const cfg = loadConfig();
   const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
-  if ( env === "production" ) {
-    logger.info( { type: "init", mode: "production", msg: "Starting in production mode" } );
-  }
   const rpc = new BitcoinRpcClient( { url: cfg.bitcoinRpcUrl } );
   const flags = new FeatureFlagsService(
     {

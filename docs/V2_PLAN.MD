@@ -58,14 +58,12 @@
 
 ### Packaging and Deployment
 
-- [ ] Docker hardening: Multi-stage build, non-root user, read-only FS where possible, healthcheck command wired to scripts/healthcheck.ts.
-- [ ] Configurable resources: Document CPU/memory requests/limits, and tune Bun GC if applicable.
-- [ ] CI/CD: Lint, typecheck, unit/integration tests, security scan, image build, and smoke tests. Publish SBOM and provenance.
+- [ ] Docker improvements: Non-root user, healthcheck command wired to scripts/healthcheck.ts.
+- [ ] CI/CD: Lint, typecheck, and smoke test for proper production JSON stdout output inside docker container.
 
 ### Documentation and DX
 
-- [ ] Architectural runbook: Sequence diagrams for block flow; troubleshooting guide for common RPC errors.
-- [ ] Operational playbooks: Reorg handling, provider failover, cache staleness, and scaling out addresses.
+- [ ] Architectural runbook: Sequence diagrams for block flow; Services diagram (includig external abstractions like QuickNode)
 - [ ] Clear JSON examples: Versioned samples for all event types, with notes on fields and units.
 
 ### Targeted Changes

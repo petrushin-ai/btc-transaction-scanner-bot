@@ -14,7 +14,7 @@ export type LoggingEnv = {
 export function getLoggingEnv(): LoggingEnv {
   const environment = (process.env.APP_ENV || process.env.NODE_ENV || "development").trim();
   const serviceName = process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot";
-  const defaultLevel = environment === "development" ? "debug" : "info";
+  const defaultLevel = environment === "development" ? "trace" : "info";
   const logLevel = process.env.LOG_LEVEL || defaultLevel;
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toLowerCase() === "true";

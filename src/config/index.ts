@@ -120,7 +120,7 @@ export function loadConfig(): AppConfig {
   const serviceName = (
     env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot"
   ).toString().trim();
-  const defaultLevel = environment === "development" ? "debug" : "info";
+  const defaultLevel = environment === "development" ? "trace" : "info";
   const logLevel = (env.LOG_LEVEL || defaultLevel).toString().trim();
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (env.LOG_PRETTY ?? prettyDefault).toString().toLowerCase().trim() === "true";

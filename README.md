@@ -172,7 +172,7 @@ Variables (with defaults and purpose):
 
 - `APP_ENV` or `NODE_ENV` (default: `development`)
   - Environment name; affects which `.env.*` files load and logger defaults.
-- `LOG_LEVEL` (default: `debug` in `development`, otherwise `info`)
+- `LOG_LEVEL` (default: `trace` in `development`, otherwise `info`)
   - Log verbosity level (e.g., `trace`, `debug`, `info`, `warn`, `error`).
 - `LOG_PRETTY` (`true|false`, default: `true` in `development`, otherwise `false`)
   - Pretty-print logs for human readability (stdout only). File logs remain machine-friendly.
@@ -239,7 +239,7 @@ Examples:
 cp .env.scripts .env
 echo "APP_ENV=development" >> .env
 echo "LOG_PRETTY=true" >> .env
-echo "LOG_LEVEL=debug" >> .env
+echo "LOG_LEVEL=trace" >> .env
 ```
 
 ## Build & run with Docker
