@@ -35,7 +35,6 @@ describe( "Process-level soak (10 TPS, 1k addresses)", () => {
       value: data.p95BlockLatencyMs,
       unit: "ms"
     } );
-    // Also emit general mem_proc_max
-    emitMetric( { suite: "general", name: "mem_proc_max", value: data.rssMaxMb, unit: "MB" } );
+    // Leave memory metrics to dedicated tests/setup; avoid duplicates here
   } );
 } );

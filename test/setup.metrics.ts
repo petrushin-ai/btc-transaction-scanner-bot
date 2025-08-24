@@ -1,5 +1,6 @@
 import { afterAll, beforeAll } from "bun:test";
 
+import { peakMemoryUsageMb } from "./_metrics";
 import "./_metrics-preload";
 
 type Metric = {
@@ -87,6 +88,11 @@ afterAll( () => {
   try {
     const g = globalThis as any;
     const metrics: Metric[] = Array.isArray( g.__TEST_METRICS__ ) ? g.__TEST_METRICS__ : [];
+    // Emit global mem_max (best-effort) once at the end
+    const peak = peakMemoryUsageMb();
+    if ( typeof peak === "number" && !Number.isNaN( peak ) ) {
+      metrics.push( { suite: "general", name: "mem_max", value: peak, unit: "MB" } );
+    }
     printPretty( metrics );
   } catch {
     // ignore
