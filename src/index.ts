@@ -47,7 +47,11 @@ async function main() {
   registerEventPipeline(events, { btc, currency }, cfg);
 
   let lastHeight: number | undefined = undefined;
-  for (;;) {
+  // Backpressure-aware producer: waits when event backlog is high
+  async function produceBlocks(): Promise<never> {
+    // If queue is congested, allow consumers to catch up before awaiting next block
+    // We check "BlockDetected" backlog since that's the head of the pipeline
+    await events.waitForCapacity("BlockDetected");
     const block = await btc.awaitNewBlock(lastHeight);
     lastHeight = block.height;
     await events.publish({
@@ -57,7 +61,11 @@ async function main() {
       hash: block.hash,
       dedupeKey: `BlockDetected:${block.height}:${block.hash}`,
     });
+    // Tail recurse to keep producing
+    return produceBlocks();
   }
+
+  await produceBlocks();
 }
 
 main().catch((err) => {

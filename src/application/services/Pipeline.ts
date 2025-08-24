@@ -60,6 +60,11 @@ export function registerEventPipeline(
     concurrency: 1,
     retry: { maxRetries: 2, backoffMs: (n) => 100 * n },
     handler: async (ev) => {
+      // Delay non-critical external work (USD rate fetch) when there is backlog, but do not skip
+      const backlogHigh = events.getBacklogDepth("BlockDetected") > Math.floor(cfg.maxEventQueueSize / 2);
+      if (backlogHigh) {
+        await events.waitForCapacity("BlockDetected");
+      }
       const rate = await getUsdRate(currency);
       const filteredWatch = workers.filterWatched(cfg.watch);
       const activities: AddressActivity[] = mapActivitiesWithUsd(
@@ -67,6 +72,10 @@ export function registerEventPipeline(
         rate,
       );
       logBlockSummary(ev.block, activities.length);
+      // OP_RETURN logging is non-critical; delay under pressure, do not skip
+      if (backlogHigh) {
+        await events.waitForCapacity("BlockDetected");
+      }
       logOpReturnData(ev.block);
       for (const activity of activities) {
         const aev: AddressActivityFoundEvent = {

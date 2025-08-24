@@ -42,6 +42,28 @@ export class EventService {
     this.log = opts?.log ?? logger("event_service");
   }
 
+  /** Returns current backlog depth (queued + in-flight) for a specific event type. */
+  public getBacklogDepth(type: DomainEventType): number {
+    return this.getDepth(type);
+  }
+
+  /** Returns sum backlog across all types to drive global backpressure decisions. */
+  public getTotalBacklogDepth(): number {
+    let total = 0;
+    for (const [type] of this.queues) {
+      total += this.getDepth(type);
+    }
+    return total;
+  }
+
+  /** Wait until the backlog for given type goes below a threshold (default: maxQueueSize/2). */
+  public async waitForCapacity(type: DomainEventType, threshold?: number): Promise<void> {
+    const target = Math.max(0, Math.floor((threshold ?? (this.maxQueueSize / 2))));
+    while (this.getDepth(type) > target) {
+      await this.waitForDrain(type);
+    }
+  }
+
   subscribe<T extends DomainEventType>(sub: Subscription<T>): void {
     const s: InternalSubscription = {
       type: sub.event,
