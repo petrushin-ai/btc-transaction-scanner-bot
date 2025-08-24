@@ -44,19 +44,12 @@
 - [x] Graceful shutdown: Handle SIGINT/SIGTERM; drain queues, close HTTP agents.
 - [x] Idempotency: Use deterministic eventId to dedupe downstream. Emit “block reorg” compensating events on chain rollbacks.
 
-### Performance and Scalability
 
-- [ ] Concurrency controls: Tune parallel RPC calls with a token bucket limiter; batch prev-tx fetches; cap batch size by payload.
-- [ ] Memory discipline: Cap previous transaction cache and expose metrics; avoid unbounded maps. Reuse buffers where possible.
-- [ ] Profiling: Add CPU and heap profiling hooks. Include perf baselines in CI (parse N blocks, 7 TPS scenario, 1k addresses).
 
 ### Testing and Quality
 
-- [ ] Property/fuzz tests: For raw parser and script decoder with randomly generated but valid structures.
-- [ ] Golden fixtures: Maintain canonical blocks/tx fixtures and expected activities; protect against regressions.
-- [ ] Failure injection: Tests for RPC timeouts, partial batches, stale rates, reorgs, provider outages.
-- [ ] Soak tests: Long-running test under 7 TPS and 1k addresses; assert memory ceiling and steady latency.
-- [ ] Schema contract tests: Validate emitted notification JSON against schema across test suite.
+- [x] Property/fuzz tests: For raw parser and script decoder with randomly generated but valid structures.
+- [x] Soak tests: Long-running test under 7 TPS and 1k addresses; assert memory ceiling and steady latency.
 
 ### Security
 

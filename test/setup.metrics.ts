@@ -1,4 +1,4 @@
-import { afterAll } from "bun:test";
+import { afterAll, beforeAll } from "bun:test";
 
 import "./_metrics-preload";
 
@@ -88,6 +88,15 @@ afterAll(() => {
         const g = globalThis as any;
         const metrics: Metric[] = Array.isArray(g.__TEST_METRICS__) ? g.__TEST_METRICS__ : [];
         printPretty(metrics);
+    } catch {
+        // ignore
+    }
+});
+
+beforeAll(() => {
+    try {
+        process.env.LOG_STDOUT = process.env.LOG_STDOUT ?? "false";
+        process.env.LOG_PRETTY = process.env.LOG_PRETTY ?? "false";
     } catch {
         // ignore
     }
