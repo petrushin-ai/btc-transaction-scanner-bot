@@ -2,18 +2,16 @@
 
 - [x] Introduce domain events and pipeline: Model a block-processing pipeline with explicit domain events (e.g., BlockDetected, BlockParsed, AddressActivityFound, NotificationEmitted) and decouple stages via an internal bus. Enables backpressure, retries, and easier profiling.
 - [x] Pluggable sinks: Abstract notification sinks (stdout JSON, file, Kafka/NATS, webhook). Keep stdout as default to meet requirements; enable enterprise outputs via config.
-- [ ] State management: Persist last processed height and progress markers to durable storage (e.g., file, Redis, Postgres). On restart, resume deterministically instead of let lastHeight in src/index.ts.
 - [x] Horizontal scale strategy: Partition the watched-address space across workers (consistent hashing). Add dedupe keys for events to support at-least-once delivery.
 - [x] Feature flags: Centralize feature flags with typed config (e.g., parseRawBlocks, resolveInputAddresses) and runtime-refreshable toggles.
 
 ### Block Detection and Ingestion
 
-- [ ] Low-latency block signals: Add Bitcoin Core ZMQ subscription or getblock longpoll to reduce poll latency and RPC overhead. Keep polling as fallback with jitter.
-- [ ] Backpressure-aware loop: Replace for(;;) with a queue-driven loop and bounded concurrency. Delay non-critical work when lagging.
+- [x] Backpressure-aware loop: Replace for(;;) with a queue-driven loop and bounded concurrency. Delay non-critical work when lagging.
 
 ### Raw Parsing and Transaction Analysis
 
-- [ ] Zero-copy safe parsing: The raw parser already avoids materializing strings; preserve and extend that for witness parsing and scripts. Add defensive bounds checks in ByteReader.
+- [x] Zero-copy safe parsing: The raw parser already avoids materializing strings; preserve and extend that for witness parsing and scripts. Add defensive bounds checks in ByteReader.
 - [ ] Script coverage: Expand script interpreter coverage (P2SH-P2WPKH, P2TR tapscripts basics) and unify address derivation/validation in one module. Normalize Bech32 case and validate checksum centrally.
 - [ ] OP_RETURN policy: Log OP_RETURN safely with size caps, UTF‑8 detection, and hex fallback. Add redaction rules for large payloads.
 

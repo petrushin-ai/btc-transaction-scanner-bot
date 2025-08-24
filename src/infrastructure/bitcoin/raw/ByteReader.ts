@@ -27,6 +27,7 @@ export class ByteReader {
   }
 
   readSlice(length: number): Buffer {
+    if (length < 0) throw new Error("readSlice negative length");
     if (this.offset + length > this.buffer.length) throw new Error("readSlice out of range");
     const slice = this.buffer.subarray(this.offset, this.offset + length);
     this.offset += length;
@@ -34,12 +35,14 @@ export class ByteReader {
   }
 
   readUInt8(): number {
+    if (this.offset + 1 > this.buffer.length) throw new Error("readUInt8 out of range");
     const v = this.buffer.readUInt8(this.offset);
     this.offset += 1;
     return v;
   }
 
   readUInt32LE(): number {
+    if (this.offset + 4 > this.buffer.length) throw new Error("readUInt32LE out of range");
     const v = this.buffer.readUInt32LE(this.offset);
     this.offset += 4;
     return v;
@@ -47,6 +50,7 @@ export class ByteReader {
 
   readUInt64LE(): bigint {
     // Use BigInt to avoid precision loss; caller can convert if needed
+    if (this.offset + 8 > this.buffer.length) throw new Error("readUInt64LE out of range");
     const lo = BigInt(this.buffer.readUInt32LE(this.offset));
     const hi = BigInt(this.buffer.readUInt32LE(this.offset + 4));
     this.offset += 8;
@@ -58,6 +62,7 @@ export class ByteReader {
    * Safe for Bitcoin amounts (max 2.1e15 < 2^53).
    */
   readUInt64LEAsNumber(): number {
+    if (this.offset + 8 > this.buffer.length) throw new Error("readUInt64LEAsNumber out of range");
     const lo = this.buffer.readUInt32LE(this.offset);
     const hi = this.buffer.readUInt32LE(this.offset + 4);
     this.offset += 8;
@@ -85,6 +90,7 @@ export class ByteReader {
   }
 
   private readUInt16LE(): number {
+    if (this.offset + 2 > this.buffer.length) throw new Error("readUInt16LE out of range");
     const v = this.buffer.readUInt16LE(this.offset);
     this.offset += 2;
     return v;

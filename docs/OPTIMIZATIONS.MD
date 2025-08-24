@@ -73,6 +73,15 @@
   - Amounts are < 2^53, so the numeric path is safe and faster in JS runtimes.
 - **Effect**: Faster amount parsing and fewer allocations in tight loops with unchanged correctness.
 
+### 11) Zero-copy safe parsing and defensive bounds checks
+- **Files**: `src/infrastructure/bitcoin/raw/ByteReader.ts`, `src/infrastructure/bitcoin/raw/Script.ts`, `src/infrastructure/bitcoin/raw/TxParser.ts`
+- **Changes**:
+  - Added explicit bounds checks to `ByteReader` fixed-width reads: `readUInt8`, `readUInt16LE`, `readUInt32LE`, `readUInt64LE`, `readUInt64LEAsNumber`, and `readSlice` (guard negative lengths and out-of-range reads).
+  - Hardened pushdata decoding in `Script.decodePushAt` to validate that enough bytes exist for OP_PUSHDATA1/2/4 length fields before reading and slicing.
+  - Preserved zero-copy semantics across script and witness parsing using `Buffer.subarray()` and by consuming witness stack items via `readSlice` without materializing hex strings.
+- **Reason**: Improve robustness against malformed or truncated data while keeping the raw parser allocation-free on hot paths (no intermediate strings or buffer copies).
+- **Effect**: Safer parsing (prevents out-of-bounds reads) with unchanged behavior and performance; all tests pass. Zero-copy characteristics maintained for scripts and witness data.
+
 ## Measured outcomes (local runs)
 - throughput `max_measured_tps`: ~31k → ~37k (noise exists, but trend improved after parser/caching tweaks)
 - raw‑parser `parse_block_ms`: ~1 ms → ~1 ms (unchanged; already fast)

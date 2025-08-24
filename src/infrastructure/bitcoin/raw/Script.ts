@@ -78,6 +78,7 @@ function decodePushAt(script: Buffer, index: number): Buffer | undefined {
     return script.subarray(start, end);
   }
   if (opcode === 0x4c) {
+    if (index + 1 >= script.length) return undefined;
     const len = script[index + 1];
     const start = index + 2;
     const end = start + len;
@@ -85,6 +86,7 @@ function decodePushAt(script: Buffer, index: number): Buffer | undefined {
     return script.subarray(start, end);
   }
   if (opcode === 0x4d) {
+    if (index + 3 > script.length) return undefined; // need 2 bytes for length
     const len = script.readUInt16LE(index + 1);
     const start = index + 3;
     const end = start + len;
@@ -92,6 +94,7 @@ function decodePushAt(script: Buffer, index: number): Buffer | undefined {
     return script.subarray(start, end);
   }
   if (opcode === 0x4e) {
+    if (index + 5 > script.length) return undefined; // need 4 bytes for length
     const len = script.readUInt32LE(index + 1);
     const start = index + 5;
     const end = start + len;
