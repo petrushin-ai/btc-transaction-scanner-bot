@@ -55,7 +55,7 @@ export function registerEventPipeline(
     handler: async (ev) => {
       const block: ParsedBlock = await btc.parseBlockByHash(ev.hash);
       const dedupeKey = `BlockParsed:${block.height}:${block.hash}`;
-      await events.publish({ type: "BlockParsed", timestamp: new Date().toISOString(), block, dedupeKey });
+      await events.publish({ type: "BlockParsed", timestamp: new Date().toISOString(), block, dedupeKey, eventId: dedupeKey });
     },
   });
 
@@ -88,6 +88,7 @@ export function registerEventPipeline(
           block: { hash: ev.block.hash, height: ev.block.height, time: ev.block.time },
           activity,
           dedupeKey: `AddressActivity:${ev.block.height}:${ev.block.hash}:${activity.address}:${activity.txid}:${activity.direction}`,
+          eventId: `AddressActivity:${ev.block.height}:${ev.block.hash}:${activity.address}:${activity.txid}:${activity.direction}`,
         };
         await events.publish(aev);
       }
@@ -115,6 +116,7 @@ export function registerEventPipeline(
         ok: true,
         details: { address: ev.activity.address, txid: ev.activity.txid },
         dedupeKey: `Notification:${ev.block.height}:${ev.block.hash}:${ev.activity.address}:${ev.activity.txid}:${ev.activity.direction}`,
+        eventId: `Notification:${ev.block.height}:${ev.block.hash}:${ev.activity.address}:${ev.activity.txid}:${ev.activity.direction}`,
       };
       await events.publish(nev);
     },

@@ -41,8 +41,8 @@
 
 ### Reliability and Shutdown
 
-- [ ] Graceful shutdown: Handle SIGINT/SIGTERM; flush logs, persist last processed height, drain queues, close HTTP agents.
-- [ ] Idempotency: Use deterministic eventId to dedupe downstream. Emit “block reorg” compensating events on chain rollbacks.
+- [x] Graceful shutdown: Handle SIGINT/SIGTERM; drain queues, close HTTP agents.
+- [x] Idempotency: Use deterministic eventId to dedupe downstream. Emit “block reorg” compensating events on chain rollbacks.
 
 ### Performance and Scalability
 

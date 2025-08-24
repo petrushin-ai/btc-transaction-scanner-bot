@@ -7,6 +7,8 @@ export type BlockDetectedEvent = {
   hash: string;
   /** Deterministic key to enable at-least-once deduplication downstream */
   dedupeKey?: string;
+  /** Canonical deterministic event id to prefer for idempotency */
+  eventId?: string;
 };
 
 export type BlockParsedEvent = {
@@ -15,6 +17,8 @@ export type BlockParsedEvent = {
   block: ParsedBlock;
   /** Deterministic key to enable at-least-once deduplication downstream */
   dedupeKey?: string;
+  /** Canonical deterministic event id to prefer for idempotency */
+  eventId?: string;
 };
 
 export type AddressActivityFoundEvent = {
@@ -24,6 +28,8 @@ export type AddressActivityFoundEvent = {
   activity: AddressActivity;
   /** Deterministic key to enable at-least-once deduplication downstream */
   dedupeKey?: string;
+  /** Canonical deterministic event id to prefer for idempotency */
+  eventId?: string;
 };
 
 export type NotificationEmittedEvent = {
@@ -34,13 +40,30 @@ export type NotificationEmittedEvent = {
   details?: Record<string, unknown>;
   /** Deterministic key to enable at-least-once deduplication downstream */
   dedupeKey?: string;
+  /** Canonical deterministic event id to prefer for idempotency */
+  eventId?: string;
+};
+
+export type BlockReorgEvent = {
+  type: "BlockReorg";
+  timestamp: string;
+  /** Height that changed due to reorg */
+  height: number;
+  /** The block hash that was previously at this height */
+  oldHash: string;
+  /** The block hash that replaced it */
+  newHash: string;
+  /** Deterministic id for idempotency */
+  eventId?: string;
+  dedupeKey?: string;
 };
 
 export type DomainEvent =
   | BlockDetectedEvent
   | BlockParsedEvent
   | AddressActivityFoundEvent
-  | NotificationEmittedEvent;
+  | NotificationEmittedEvent
+  | BlockReorgEvent;
 
 export type DomainEventType = DomainEvent["type"];
 

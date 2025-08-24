@@ -175,6 +175,7 @@ export class BitcoinService implements BlockchainService {
       const block = (await this.rpc.getBlockByHashVerbose2(blockHash)) as any;
       return {
         hash: block.hash,
+        prevHash: block.previousblockhash,
         height: block.height,
         time: block.time,
         transactions: await this.parseTransactions(block.tx),
@@ -188,6 +189,7 @@ export class BitcoinService implements BlockchainService {
     const rawParsed = Raw.parseRawBlock(hex, this.network);
     const parsed: ParsedBlock = {
       hash: rawParsed.hash,
+      prevHash: rawParsed.prevBlock,
       height: header.height,
       time: header.time,
       transactions: rawParsed.transactions.map((t) => ({

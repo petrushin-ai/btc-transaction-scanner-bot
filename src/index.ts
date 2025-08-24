@@ -1,6 +1,6 @@
 import { BTC, USD } from "@/application/constants";
 import { normalizeWatchedAddresses } from "@/application/helpers/bitcoin";
-import { configureHttpKeepAlive } from "@/application/helpers/http";
+import { closeAllHttpPools, configureHttpKeepAlive } from "@/application/helpers/http";
 import {
   BitcoinService,
   CurrencyService,
@@ -30,7 +30,9 @@ async function main() {
     },
     {
       filePath: process.env.FEATURE_FLAGS_FILE,
-      reloadIntervalMs: process.env.FEATURE_FLAGS_RELOAD_MS ? Number( process.env.FEATURE_FLAGS_RELOAD_MS ) : undefined,
+      reloadIntervalMs: process.env.FEATURE_FLAGS_RELOAD_MS
+        ? Number( process.env.FEATURE_FLAGS_RELOAD_MS )
+        : undefined,
     }
   );
   const btc = new BitcoinService( rpc, {
@@ -90,7 +92,12 @@ async function main() {
         if ( !Array.isArray( json ) ) return;
         const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
         let net: any = undefined;
-        if ( networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest" ) {
+        if (
+          networkGuess === "mainnet"
+          || networkGuess === "testnet"
+          || networkGuess === "signet"
+          || networkGuess === "regtest"
+        ) {
           net = networkGuess as any;
         }
         const items = json
@@ -140,24 +147,66 @@ async function main() {
   }
 
   let lastHeight: number | undefined = undefined;
+  let lastHash: string | undefined = undefined;
 
   // Backpressure-aware producer: waits when event backlog is high
   async function produceBlocks(): Promise<never> {
-    // If queue is congested, allow consumers to catch up before awaiting next block
+    // If the queue is congested, allow consumers to catch up before awaiting next block
     // We check "BlockDetected" backlog since that's the head of the pipeline
     await events.waitForCapacity( "BlockDetected" );
     const block = await btc.awaitNewBlock( lastHeight );
+    // Detect reorg: if the prev block hash doesn't match our lastHash while height advanced by 1
+    if (
+      typeof lastHeight === "number"
+      && block.height === lastHeight + 1
+      && lastHash && block.prevHash
+      && block.prevHash !== lastHash
+    ) {
+      const reorgEv = {
+        type: "BlockReorg" as const,
+        timestamp: new Date().toISOString(),
+        height: block.height - 1,
+        oldHash: lastHash,
+        newHash: block.prevHash,
+        eventId: `BlockReorg:${ block.height - 1 }:${ lastHash }->${ block.prevHash }`,
+        dedupeKey: `BlockReorg:${ block.height - 1 }:${ lastHash }:${ block.prevHash }`,
+      };
+      await events.publish( reorgEv as any );
+    }
     lastHeight = block.height;
+    lastHash = block.hash;
     await events.publish( {
       type: "BlockDetected",
       timestamp: new Date().toISOString(),
       height: block.height,
       hash: block.hash,
       dedupeKey: `BlockDetected:${ block.height }:${ block.hash }`,
+      eventId: `BlockDetected:${ block.height }:${ block.hash }`,
     } );
     // Tail recurse to keep producing
     return produceBlocks();
   }
+
+  // Graceful shutdown wiring
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if ( shuttingDown ) return;
+    shuttingDown = true;
+    try {
+      logger.info( { type: "shutdown.start", signal } );
+      // Stop producing new events by preventing further publish and waiting for drain
+      await events.waitUntilIdle( 5 );
+      await closeAllHttpPools();
+      logger.info( { type: "shutdown.complete" } );
+    } catch ( err ) {
+      const message = err instanceof Error ? err.message : String( err );
+      logger.error( { type: "shutdown.error", message } );
+    } finally {
+      process.exit( 0 );
+    }
+  };
+  process.once( "SIGINT", () => void shutdown( "SIGINT" ) );
+  process.once( "SIGTERM", () => void shutdown( "SIGTERM" ) );
 
   await produceBlocks();
 }

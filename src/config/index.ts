@@ -82,7 +82,7 @@ export function loadConfig(): AppConfig {
     SINK_NATS_URL: z.string().optional(),
     SINK_NATS_SUBJECT: z.string().optional(),
     BITCOIN_NETWORK: z.enum( [ "mainnet", "testnet", "signet", "regtest" ] ).optional(),
-  } ).strict();
+  } );
 
   const result = envSchema.safeParse( process.env );
   if ( !result.success ) {

@@ -36,6 +36,7 @@ export class EventService {
   private inflightByType: Map<DomainEventType, number> = new Map();
   private maxQueueSize: number;
   private log: AppLogger;
+  private stopped: boolean = false;
 
   constructor(opts?: EventServiceOptions) {
     this.maxQueueSize = opts?.maxQueueSize ?? 1000;
@@ -84,6 +85,7 @@ export class EventService {
   }
 
   async publish<E extends DomainEvent>(event: E): Promise<void> {
+    if (this.stopped) return; // drop new events when stopped
     const type = event.type as DomainEventType;
     if (!this.queues.has(type)) this.queues.set(type, []);
     if (!this.drainingWaiters.has(type)) this.drainingWaiters.set(type, []);
@@ -180,6 +182,21 @@ export class EventService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((res) => setTimeout(res, ms));
+  }
+
+  /**
+   * Stop accepting new events and wait until all queues are drained and in-flight handlers complete.
+   */
+  public async waitUntilIdle(checkIntervalMs: number = 10): Promise<void> {
+    this.stopped = true;
+    for (;;) {
+      let total = 0;
+      for (const [ type ] of this.queues) {
+        total += this.getDepth(type);
+      }
+      if (total === 0) return;
+      await this.sleep(checkIntervalMs);
+    }
   }
 }
 

@@ -31,6 +31,7 @@ export type ParsedTransaction = {
 
 export type ParsedBlock = {
     hash: string;
+    prevHash?: string;
     height: number;
     time: number;
     transactions: ParsedTransaction[];
