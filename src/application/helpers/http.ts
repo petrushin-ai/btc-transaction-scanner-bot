@@ -14,6 +14,54 @@ export const JSON_HEADERS: RequestHeaders = {
   "Accept": "application/json",
 };
 
+// Keep-Alive via undici per-origin pools
+import {fetch as undiciFetch, Pool} from "undici";
+
+type KeepAliveConfig = {
+  defaultConnections: number;
+  perHostConnections: Record<string, number>;
+  keepAliveTimeoutMs: number;
+  keepAliveMaxTimeoutMs: number;
+  pipelining: number;
+};
+
+let keepAliveConfig: KeepAliveConfig = {
+  defaultConnections: 8,
+  perHostConnections: {},
+  keepAliveTimeoutMs: 30000,
+  keepAliveMaxTimeoutMs: 60000,
+  pipelining: 1,
+};
+
+const originPools = new Map<string, Pool>();
+
+export function configureHttpKeepAlive(cfg: Partial<KeepAliveConfig>): void {
+  keepAliveConfig = {
+    ...keepAliveConfig,
+    ...cfg,
+    perHostConnections: {
+      ...keepAliveConfig.perHostConnections,
+      ...(cfg.perHostConnections || {}),
+    },
+  };
+}
+
+function getPoolForUrl(url: string): Pool {
+  const u = new URL(url);
+  const origin = u.origin;
+  let pool = originPools.get(origin);
+  if (pool) return pool;
+  const connections = keepAliveConfig.perHostConnections[u.hostname] ?? keepAliveConfig.defaultConnections;
+  pool = new Pool(origin, {
+    connections,
+    pipelining: keepAliveConfig.pipelining,
+    keepAliveTimeout: keepAliveConfig.keepAliveTimeoutMs,
+    keepAliveMaxTimeout: keepAliveConfig.keepAliveMaxTimeoutMs,
+  });
+  originPools.set(origin, pool);
+  return pool;
+}
+
 export type FetchJsonOptions = {
   method?: HttpMethod;
   headers?: RequestHeaders;
@@ -40,12 +88,14 @@ export async function fetchJson<T = unknown>(url: string, opts: FetchJsonOptions
   }
 
   try {
-    const res = await fetch(url, {
+    const res = await undiciFetch(url, {
       method,
       headers,
       body,
       signal: opts.signal || controller.signal,
-    });
+      // @ts-ignore - undici fetch supports dispatcher
+      dispatcher: getPoolForUrl(url),
+    } as any);
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       throw new Error(`${method} ${url} failed: ${res.status} ${res.statusText} ${text}`.trim());

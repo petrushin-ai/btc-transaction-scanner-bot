@@ -35,16 +35,14 @@
 
 ### Observability and Operability
 
-- [ ] Metrics (Prometheus/OpenTelemetry): Export histograms and counters: RPC latency by method, block detection lag, parse duration, matched addresses per block, queue depth, retries, currency fetches.
-- [ ] Structured event schemas: Versioned JSON schemas for emitted notifications; validate pre-emit. Include correlation IDs: blockHash, height, txid, eventId.
 - [ ] Logging strategy: Prefer NDJSON for files by default with logrotate-friendly outputs; keep pretty console in dev. The JSON-array file writer in src/infrastructure/logger is unusual—offer it as optional mode only.
-- [ ] Production log gating: Keep current gating but enforce by logger config, not ad-hoc type checks. Add sample rate for noisy debug streams.
 - [ ] Tracing: Add spans around block fetch, parse, address match, USD enrichment, and emit.
 
 ### Configuration and Secrets
 
-- [ ] Typed config: Continue Ajv (or migrate to Zod) with inferred TS types. Emit friendly validation errors with actionable tips.
-- [ ] Secrets and TLS: Support RPC over TLS with CA pinning and client certs. Source credentials from env/secret store, ensure they are never logged.
+- [ ] Typed config: Continue migrate to Zod from Ajv with inferred TS types. Emit friendly validation errors with actionable tips.
+
+### Watchlist hot reload
 - [ ] Hot-reload watch list: Watch addresses.json file with debounce and atomic swap of the in-memory structure.
 
 ### Reliability and Shutdown
