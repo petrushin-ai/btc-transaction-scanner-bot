@@ -52,19 +52,65 @@ export function peakMemoryUsageMb(): number | undefined {
     // - macOS (darwin): bytes
     // Convert deterministically by platform to avoid heuristics.
     const ru: any = (process as any).resourceUsage?.();
-    if ( !ru || typeof ru.maxRSS !== "number" ) return undefined;
-    const v = ru.maxRSS;
-    let mb: number;
-    if ( process.platform === "darwin" ) {
-      mb = v / (1024 * 1024);
-    } else {
-      // Assume kilobytes (Linux and most Unix)
-      mb = v / 1024;
+    if ( ru && typeof ru.maxRSS === "number" && isFinite( ru.maxRSS ) && ru.maxRSS > 0 ) {
+      const v = ru.maxRSS;
+      let mb: number;
+      if ( process.platform === "darwin" ) {
+        mb = v / (1024 * 1024);
+      } else {
+        // Assume kilobytes (Linux and most Unix)
+        mb = v / 1024;
+      }
+      return Math.round( mb * 100 ) / 100;
     }
-    return Math.round( mb * 100 ) / 100;
   } catch {
-    return undefined;
+    // fall through to Linux fallbacks below
   }
+
+  // Fallbacks for Linux environments (e.g., some Bun builds in Docker) where
+  // process.resourceUsage().maxRSS may be 0 or unavailable.
+  try {
+    if ( process.platform === "linux" ) {
+      // Prefer process peak RSS from /proc/self/status (VmHWM in kB)
+      try {
+        const status = fs.readFileSync( "/proc/self/status", "utf8" );
+        const m = /VmHWM:\s+(\d+)\s*kB/i.exec( status );
+        if ( m ) {
+          const kb = Number( m[1] );
+          if ( Number.isFinite( kb ) && kb > 0 ) {
+            return Math.round( (kb / 1024) * 100 ) / 100;
+          }
+        }
+      } catch {
+        // ignore and try cgroup fallbacks
+      }
+
+      // cgroup v2 (Docker newer): memory.peak contains bytes
+      const cgroupCandidates = [
+        "/sys/fs/cgroup/memory.peak", // unified cgroup v2
+        "/sys/fs/cgroup/memory/memory.max_usage_in_bytes", // cgroup v1 common
+        "/sys/fs/cgroup/memory.max_usage_in_bytes", // alternate mount
+      ];
+      for ( const p of cgroupCandidates ) {
+        try {
+          if ( fs.existsSync( p ) ) {
+            const raw = fs.readFileSync( p, "utf8" ).trim();
+            const bytes = Number( raw );
+            if ( Number.isFinite( bytes ) && bytes > 0 ) {
+              const mb = bytes / (1024 * 1024);
+              return Math.round( mb * 100 ) / 100;
+            }
+          }
+        } catch {
+          // try next candidate
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return undefined;
 }
 
 

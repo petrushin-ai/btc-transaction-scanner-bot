@@ -79,6 +79,7 @@ function printPretty(metrics: Metric[]): void {
     } else if ( s === "mem-probe" ) {
       const priority: Record<string, number> = {
         "mem_idle": 0,
+        "mem_max": 1,
         "rss_after_mb": 1,
         "mem_delta": 2,
         "parse_ms": 3,
