@@ -17,6 +17,11 @@ export function registerEventPipeline(
   const { btc, currency } = services;
   const workers = new WorkersService(cfg.worker.id, cfg.worker.members);
 
+  // Precompute and set immutable watch indexes for the addresses this worker is responsible for
+  const filteredWatch = workers.filterWatched(cfg.watch);
+  // Optional: available on real BitcoinService; tests may pass a fake without it
+  (btc as any).setWatchedAddresses?.(filteredWatch);
+
   // Build sinks from config. Default behavior remains logging to stdout.
   const sinks: NotificationSink[] = [];
   const enabled = cfg.sinks?.enabled || ["stdout"];
@@ -66,7 +71,6 @@ export function registerEventPipeline(
         await events.waitForCapacity("BlockDetected");
       }
       const rate = await getUsdRate(currency);
-      const filteredWatch = workers.filterWatched(cfg.watch);
       const activities: AddressActivity[] = mapActivitiesWithUsd(
         btc.checkTransactions(ev.block, filteredWatch),
         rate,

@@ -52,6 +52,36 @@ export class BitcoinService implements BlockchainService {
     this.log = logger("bitcoin_service");
   }
 
+  /**
+   * Precompute immutable watch indexes (address -> label, and label -> addresses) once at startup.
+   * Supplying the same array reference later to checkTransactions enables cache reuse without rebuilds.
+   */
+  setWatchedAddresses(watched: WatchedAddress[]): void {
+    const watchSet = new Map<string, string | undefined>();
+    for (const w of watched) watchSet.set(w.address, w.label);
+    const labelIndex = new Map<string, { address: string; label?: string }[]>();
+    for (const w of watched) {
+      if (w.label && typeof w.label === "string") {
+        const key = w.label.trim().toLowerCase();
+        if (key.length === 0) continue;
+        const arr = labelIndex.get(key) || [];
+        arr.push({address: w.address, label: w.label});
+        labelIndex.set(key, arr);
+      }
+    }
+    this._watchedCache = {sourceRef: watched, watchSet, labelIndex};
+  }
+
+  /** Read-only view of the precomputed watch set. */
+  getWatchSet(): ReadonlyMap<string, string | undefined> {
+    return this._watchedCache?.watchSet ?? new Map();
+  }
+
+  /** Read-only view of the precomputed label index. */
+  getLabelIndex(): ReadonlyMap<string, { address: string; label?: string }[]> {
+    return this._watchedCache?.labelIndex ?? new Map();
+  }
+
   private getFlags(): FeatureFlags {
     if (this.flagsService) return this.flagsService.getFlags();
     return {parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses};
@@ -203,12 +233,19 @@ export class BitcoinService implements BlockchainService {
   checkTransactions(block: ParsedBlock, watched: WatchedAddress[]): AddressActivity[] {
     let watchSet: Map<string, string | undefined>;
     let labelIndex: Map<string, { address: string; label?: string }[]>;
+    // Prefer prebuilt cache when available and the same source list is used
     if (this._watchedCache && this._watchedCache.sourceRef === watched) {
       watchSet = this._watchedCache.watchSet;
       labelIndex = this._watchedCache.labelIndex;
+    } else if (this._watchedCache && (!watched || watched.length === 0)) {
+      // If caller intentionally passes an empty list (or undefined in future), use prebuilt
+      watchSet = this._watchedCache.watchSet;
+      labelIndex = this._watchedCache.labelIndex;
     } else {
+      // Build a scoped cache for the provided watched list
       watchSet = new Map<string, string | undefined>();
       for (const w of watched) watchSet.set(w.address, w.label);
+      labelIndex = new Map<string, { address: string; label?: string }[]>();
       labelIndex = new Map<string, { address: string; label?: string }[]>();
       for (const w of watched) {
         if (w.label && typeof w.label === "string") {
