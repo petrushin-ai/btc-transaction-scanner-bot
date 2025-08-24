@@ -1,3 +1,4 @@
+import {SEGWIT, SIZES} from "../constants";
 import type {Network} from "./Address";
 import {btcFromSats, ByteReader, sha256dMany, toHexLE} from "./ByteReader";
 import {decodeScriptPubKey} from "./Script";
@@ -27,7 +28,7 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   const flag = reader.readUInt8();
   let vinCount: number;
   let vinCountStart = 0;
-  if (marker === 0x00 && flag === 0x01) {
+  if (marker === SEGWIT.MARKER && flag === SEGWIT.FLAG) {
     hasWitness = true;
     vinCountStart = reader.position;
     vinCount = reader.readVarInt();
@@ -88,9 +89,9 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   reader.readUInt32LE();
 
   // Compute txid excluding witness per BIP-0141
-  const versionBytes = reader.sliceAbsolute(start, start + 4);
+  const versionBytes = reader.sliceAbsolute(start, start + SIZES.UINT32);
   const preWitness = reader.sliceAbsolute(vinCountStart, posBeforeWitness);
-  const locktimeBytes = reader.sliceAbsolute(locktimeStart, locktimeStart + 4);
+  const locktimeBytes = reader.sliceAbsolute(locktimeStart, locktimeStart + SIZES.LOCKTIME);
   const txid = toHexLE(sha256dMany([versionBytes, preWitness, locktimeBytes]));
   // witness data omitted intentionally
 

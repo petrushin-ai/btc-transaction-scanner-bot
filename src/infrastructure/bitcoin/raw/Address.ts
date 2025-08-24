@@ -1,8 +1,8 @@
 import {createHash} from "crypto";
 
-const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+import {BASE58_ALPHABET, BECH32, NETWORKS, type Network as NetFromConsts} from "../constants";
 
-export type Network = "mainnet" | "testnet" | "signet" | "regtest";
+export type Network = NetFromConsts;
 
 export function base58checkEncode(version: number, payload: Buffer): string {
   // Preallocate and fill [version|payload|checksum]
@@ -41,10 +41,8 @@ export function sha256d(buf: Buffer): Buffer {
 
 // bech32/bech32m encoding (BIP-0173/0350) minimal implementation
 
-const BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l";
-
 function bech32Polymod(values: number[]): number {
-  const GENERATORS = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+  const GENERATORS = BECH32.GENERATORS;
   let chk = 1;
   for (const v of values) {
     const top = chk >> 25;
@@ -65,7 +63,7 @@ function bech32HrpExpand(hrp: string): number[] {
 }
 
 function bech32CreateChecksum(hrp: string, data: number[], spec: "bech32" | "bech32m"): number[] {
-  const constVal = spec === "bech32" ? 1 : 0x2bc830a3;
+  const constVal = spec === "bech32" ? BECH32.CONST_BECH32 : BECH32.CONST_BECH32M;
   const values = [...bech32HrpExpand(hrp), ...data, 0, 0, 0, 0, 0, 0];
   const mod = bech32Polymod(values) ^ constVal;
   const ret: number[] = [];
@@ -77,11 +75,15 @@ function bech32Encode(hrp: string, data: number[], spec: "bech32" | "bech32m"): 
   const checksum = bech32CreateChecksum(hrp, data, spec);
   const combined = [...data, ...checksum];
   let out = `${hrp}1`;
-  for (const c of combined) out += BECH32_CHARSET[c];
+  for (const c of combined) out += BECH32.CHARSET[c];
   return out;
 }
 
-function bech32Decode(addr: string): { hrp: string; data: number[]; spec: "bech32" | "bech32m" } | undefined {
+function bech32Decode(addr: string): {
+  hrp: string;
+  data: number[];
+  spec: "bech32" | "bech32m"
+} | undefined {
   // Reject mixed case
   const hasLower = addr.toLowerCase() !== addr;
   const hasUpper = addr.toUpperCase() !== addr;
@@ -93,18 +95,18 @@ function bech32Decode(addr: string): { hrp: string; data: number[]; spec: "bech3
   const dataPart = a.substring(pos + 1);
   const data: number[] = [];
   for (const ch of dataPart) {
-    const idx = BECH32_CHARSET.indexOf(ch);
+    const idx = BECH32.CHARSET.indexOf(ch);
     if (idx === -1) return undefined;
     data.push(idx);
   }
   // Verify checksum for both bech32 and bech32m to infer spec
   const values = [...bech32HrpExpand(hrp), ...data];
   const mod = bech32Polymod(values);
-  const isBech32 = mod === 1;
-  const isBech32m = mod === 0x2bc830a3;
+  const isBech32 = mod === BECH32.CONST_BECH32;
+  const isBech32m = mod === BECH32.CONST_BECH32M;
   if (!isBech32 && !isBech32m) return undefined;
   const spec = isBech32 ? "bech32" : "bech32m";
-  return { hrp, data: data.slice(0, data.length - 6), spec };
+  return {hrp, data: data.slice(0, data.length - 6), spec};
 }
 
 // Convert 8-bit to 5-bit groups
@@ -142,7 +144,11 @@ export function encodeWitnessAddress(
   return bech32Encode(hrp, [...data, ...prog5], spec);
 }
 
-export function decodeWitnessAddress(addr: string): { hrp: string; version: number; program: Buffer } | undefined {
+export function decodeWitnessAddress(addr: string): {
+  hrp: string;
+  version: number;
+  program: Buffer
+} | undefined {
   const dec = bech32Decode(addr);
   if (!dec) return undefined;
   if (dec.data.length === 0) return undefined;
@@ -154,7 +160,7 @@ export function decodeWitnessAddress(addr: string): { hrp: string; version: numb
   // Validate spec per BIP-350
   if (version === 0 && dec.spec !== "bech32") return undefined;
   if (version !== 0 && dec.spec !== "bech32m") return undefined;
-  return { hrp: dec.hrp, version, program: Buffer.from(prog8) };
+  return {hrp: dec.hrp, version, program: Buffer.from(prog8)};
 }
 
 export function getAddressVersionsForNetwork(network: Network): {
@@ -162,15 +168,7 @@ export function getAddressVersionsForNetwork(network: Network): {
   p2sh: number;
   hrp: string
 } {
-  switch (network) {
-    case "mainnet":
-      return {p2pkh: 0x00, p2sh: 0x05, hrp: "bc"};
-    case "testnet":
-    case "signet":
-      return {p2pkh: 0x6f, p2sh: 0xc4, hrp: "tb"};
-    case "regtest":
-      return {p2pkh: 0x6f, p2sh: 0xc4, hrp: "bcrt"};
-  }
+  return NETWORKS[network];
 }
 
 export type DecodedAddress =
@@ -182,17 +180,17 @@ export function decodeAddress(addr: string): DecodedAddress | undefined {
   // Try Base58Check
   const b58 = base58checkDecode(addr);
   if (b58) {
-    if (b58.payload.length === 20 && (b58.version === 0x00 || b58.version === 0x6f)) {
-      return { kind: "p2pkh", version: b58.version, hash160: b58.payload };
+    if (b58.payload.length === 20 && (b58.version === NETWORKS.mainnet.p2pkh || b58.version === NETWORKS.testnet.p2pkh)) {
+      return {kind: "p2pkh", version: b58.version, hash160: b58.payload};
     }
-    if (b58.payload.length === 20 && (b58.version === 0x05 || b58.version === 0xc4)) {
-      return { kind: "p2sh", version: b58.version, hash160: b58.payload };
+    if (b58.payload.length === 20 && (b58.version === NETWORKS.mainnet.p2sh || b58.version === NETWORKS.testnet.p2sh)) {
+      return {kind: "p2sh", version: b58.version, hash160: b58.payload};
     }
     return undefined;
   }
   // Try Bech32
   const w = decodeWitnessAddress(addr);
-  if (w) return { kind: "segwit", hrp: w.hrp, version: w.version, program: w.program };
+  if (w) return {kind: "segwit", hrp: w.hrp, version: w.version, program: w.program};
   return undefined;
 }
 
@@ -203,7 +201,10 @@ export function normalizeBech32Case(addr: string): string {
   return addr.toLowerCase();
 }
 
-export function validateAndNormalizeAddress(address: string, network?: Network): { normalized: string; decoded: DecodedAddress } {
+export function validateAndNormalizeAddress(address: string, network?: Network): {
+  normalized: string;
+  decoded: DecodedAddress
+} {
   const decoded = decodeAddress(address);
   if (!decoded) throw new Error("Invalid address format or checksum");
   let normalized = address;
@@ -220,7 +221,7 @@ export function validateAndNormalizeAddress(address: string, network?: Network):
       if (decoded.kind === "p2sh" && decoded.version !== versions.p2sh) throw new Error("Base58 version/network mismatch");
     }
   }
-  return { normalized, decoded };
+  return {normalized, decoded};
 }
 
 function base58checkDecode(s: string): { version: number; payload: Buffer } | undefined {
@@ -248,7 +249,7 @@ function base58checkDecode(s: string): { version: number; payload: Buffer } | un
   const checksum = buf.subarray(buf.length - 4);
   const sum = sha256d(buf.subarray(0, buf.length - 4)).subarray(0, 4);
   if (!checksum.equals(sum)) return undefined;
-  return { version, payload };
+  return {version, payload};
 }
 
 

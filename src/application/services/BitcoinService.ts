@@ -1,6 +1,10 @@
 import {BitcoinRpcClient, Raw} from "@/infrastructure/bitcoin";
-import type {AppLogger} from "@/infrastructure/logger";
-import {logger} from "@/infrastructure/logger";
+import {
+  NULL_TXID_64,
+  POLL_INTERVAL_MS_DEFAULT,
+  PREV_TX_CACHE_MAX_DEFAULT
+} from "@/infrastructure/bitcoin/constants";
+import {logger, type AppLogger} from "@/infrastructure/logger";
 import type {
   AddressActivity,
   BlockchainService,
@@ -10,8 +14,7 @@ import type {
 } from "@/types/blockchain";
 import type {HealthResult} from "@/types/healthcheck";
 
-import type { FeatureFlags } from "./FeatureFlagsService";
-import { FeatureFlagsService } from "./FeatureFlagsService";
+import {FeatureFlagsService, type FeatureFlags} from "./FeatureFlagsService";
 
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
@@ -37,11 +40,11 @@ export class BitcoinService implements BlockchainService {
   };
   // LRU-ish cache for previous transactions to minimize repeat RPCs
   private _prevTxCache: Map<string, any> = new Map();
-  private _prevTxCacheMax: number = 1000;
+  private _prevTxCacheMax: number = PREV_TX_CACHE_MAX_DEFAULT;
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
-    this.pollIntervalMs = opts?.pollIntervalMs ?? 1000;
+    this.pollIntervalMs = opts?.pollIntervalMs ?? POLL_INTERVAL_MS_DEFAULT;
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
     this.parseRawBlocks = opts?.parseRawBlocks ?? false;
     this.flagsService = opts?.flagsService;
@@ -51,7 +54,7 @@ export class BitcoinService implements BlockchainService {
 
   private getFlags(): FeatureFlags {
     if (this.flagsService) return this.flagsService.getFlags();
-    return { parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses };
+    return {parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses};
   }
 
   private isDevelopment(): boolean {
@@ -172,7 +175,7 @@ export class BitcoinService implements BlockchainService {
       for (const rtx of rawParsed.transactions) {
         for (const vin of rtx.inputs) {
           const id = vin.prevTxId;
-          if (!id || id === "0".repeat(64)) continue;
+          if (!id || id === NULL_TXID_64) continue;
           needSet.add(id);
         }
       }
@@ -212,7 +215,7 @@ export class BitcoinService implements BlockchainService {
           const key = w.label.trim().toLowerCase();
           if (key.length === 0) continue;
           const arr = labelIndex.get(key) || [];
-          arr.push({ address: w.address, label: w.label });
+          arr.push({address: w.address, label: w.label});
           labelIndex.set(key, arr);
         }
       }

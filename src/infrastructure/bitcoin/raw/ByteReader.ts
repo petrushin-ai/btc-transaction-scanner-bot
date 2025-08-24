@@ -1,4 +1,12 @@
-import { createHash } from "crypto";
+import {createHash} from "crypto";
+
+import {
+  NUMBER_UINT64_HIGH_SAFE_LIMIT,
+  SATS_PER_BTC,
+  SATS_PER_BTC_BIGINT,
+  TWO_POW_32,
+  VARINT_MARKER
+} from "../constants";
 
 const HEX_CHARS = "0123456789abcdef";
 
@@ -68,21 +76,21 @@ export class ByteReader {
     this.offset += 8;
     // Ensure we remain within Number.MAX_SAFE_INTEGER
     // hi must be < 2^21 for the sum to be safe (since (hi << 32) < 2^53)
-    if (hi >= 0x200000) {
+    if (hi >= NUMBER_UINT64_HIGH_SAFE_LIMIT) {
       // Fallback to bigint path for extremely large values (not expected for BTC amounts)
       const big = (BigInt(hi) << 32n) | BigInt(lo);
       const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
       if (big > maxSafe) throw new Error("uint64 exceeds MAX_SAFE_INTEGER");
       return Number(big);
     }
-    return lo + hi * 4294967296; // 2^32
+    return lo + hi * TWO_POW_32; // 2^32
   }
 
   readVarInt(): number {
     const first = this.readUInt8();
-    if (first < 0xfd) return first;
-    if (first === 0xfd) return this.readUInt16LE();
-    if (first === 0xfe) return this.readUInt32LE();
+    if (first < VARINT_MARKER.UINT16) return first;
+    if (first === VARINT_MARKER.UINT16) return this.readUInt16LE();
+    if (first === VARINT_MARKER.UINT32) return this.readUInt32LE();
     const v = this.readUInt64LE();
     const maxSafe = BigInt(Number.MAX_SAFE_INTEGER);
     if (v > maxSafe) throw new Error("varint exceeds MAX_SAFE_INTEGER");
@@ -126,10 +134,9 @@ export function toHexLE(buffer: Buffer): string {
 
 export function btcFromSats(sats: bigint): number {
   // Convert with 1e8; keep double precision (sufficient for logging/reporting)
-  const SATS_PER_BTC = 100_000_000n;
-  const whole = Number(sats / SATS_PER_BTC);
-  const rem = Number(sats % SATS_PER_BTC);
-  return whole + rem / 1e8;
+  const whole = Number(sats / SATS_PER_BTC_BIGINT);
+  const rem = Number(sats % SATS_PER_BTC_BIGINT);
+  return whole + rem / SATS_PER_BTC;
 }
 
 
