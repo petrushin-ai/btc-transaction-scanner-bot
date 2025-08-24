@@ -17,8 +17,6 @@ export type AppConfig = {
   serviceName: string;
   logLevel: string;
   logPretty: boolean;
-  // coinmarketcap
-  coinMarketCapBaseUrl: string;
   coinMarketCapApiKey: string;
 };
 
@@ -62,13 +60,7 @@ export function loadConfig(): AppConfig {
             {type: "string", pattern: "^[0-9]+$"},
           ],
         },
-        COINMARKETCAP_BASE_URL: {
-          type: "string",
-          allOf: [
-            {format: "uri"},
-            {pattern: "^https?://"},
-          ],
-        },
+        COINMARKETCAP_BASE_URL: { type: "string" },
         RESOLVE_INPUT_ADDRESSES: {
           anyOf: [
             {type: "boolean"},
@@ -136,7 +128,6 @@ export function loadConfig(): AppConfig {
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
   const coinMarketCapApiKey = (process.env.API_KEY_COINMARKETCAP as string).trim();
-  const coinMarketCapBaseUrl = (process.env.COINMARKETCAP_BASE_URL || "https://pro-api.coinmarketcap.com").toString().trim();
   let watch: { address: string; label?: string }[] = [];
   try {
     const storage = getFileStorage();
@@ -161,7 +152,6 @@ export function loadConfig(): AppConfig {
     serviceName,
     logLevel,
     logPretty,
-    coinMarketCapBaseUrl,
     coinMarketCapApiKey,
   };
 }

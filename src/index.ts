@@ -21,7 +21,6 @@ async function main() {
   });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
-    baseUrl: cfg.coinMarketCapBaseUrl,
   });
   const currency = new CurrencyService(cmcClient, {
     defaultBase: BTC,

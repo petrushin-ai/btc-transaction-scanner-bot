@@ -5,7 +5,6 @@ import type {HealthResult} from "@/types/healthcheck";
 
 export type CoinMarketCapClientOptions = {
   apiKey: string;
-  baseUrl?: string; // default: https://pro-api.coinmarketcap.com
   timeoutMs?: number; // default: 5000
 };
 
@@ -23,10 +22,11 @@ export class CoinMarketCapClient {
   private baseUrl: string;
   private timeoutMs: number;
   private headers: Record<string, string>;
+  private static readonly DEFAULT_BASE_URL = "https://pro-api.coinmarketcap.com";
 
   constructor(opts: CoinMarketCapClientOptions) {
     this.apiKey = opts.apiKey;
-    this.baseUrl = (opts.baseUrl || "https://pro-api.coinmarketcap.com").replace(/\/$/, "");
+    this.baseUrl = CoinMarketCapClient.DEFAULT_BASE_URL;
     this.timeoutMs = opts.timeoutMs ?? 5000;
     this.headers = {
       ...JSON_HEADERS,

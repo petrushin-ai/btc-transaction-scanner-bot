@@ -11,7 +11,6 @@ async function main() {
   const cfg = loadConfig();
   const client = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
-    baseUrl: cfg.coinMarketCapBaseUrl,
   });
   const currency = new CurrencyService(client);
 
