@@ -95,7 +95,17 @@
     ],
     "no-duplicate-imports": false,
     "object-literal-shorthand": true,
-    "no-unnecessary-initializer": true
+    "no-unnecessary-initializer": true,
+    "object-curly-spacing": [
+      true,
+      "always"
+    ],
+    "array-bracket-spacing": [
+      true,
+      "always"
+    ]
   },
-  "rulesDirectory": []
+  "rulesDirectory": [
+    "node_modules/tslint-eslint-rules/dist/rules"
+  ]
 }

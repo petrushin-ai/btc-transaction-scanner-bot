@@ -1,10 +1,10 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import {Raw} from "@/infrastructure/bitcoin";
+import { Raw } from "@/infrastructure/bitcoin";
 
-import {emitMetric, memoryUsageMb, peakMemoryUsageMb} from "./_metrics";
+import { emitMetric, memoryUsageMb, peakMemoryUsageMb } from "./_metrics";
 
 function readHex(filePath: string): string {
   const hex = fs.readFileSync(filePath, "utf8").trim();
@@ -42,7 +42,7 @@ describe("Raw parser performance", () => {
       name: "parse_block_ms",
       value: Math.round(parseMs),
       unit: "ms",
-      details: {txCount: block.transactions.length},
+      details: { txCount: block.transactions.length },
     });
     // Drop mem_delta_mb; keep only peak memory metric
     const peakMb = peakMemoryUsageMb();

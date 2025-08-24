@@ -24,7 +24,7 @@ export function registerEventPipeline(
 
   // Build sinks from config. Default behavior remains logging to stdout.
   const sinks: NotificationSink[] = [];
-  const enabled = cfg.sinks?.enabled || ["stdout"];
+  const enabled = cfg.sinks?.enabled || [ "stdout" ];
   for (const name of enabled) {
     switch (name) {
       case "stdout":
@@ -105,7 +105,7 @@ export function registerEventPipeline(
         height: ev.block.height,
         time: ev.block.time,
         transactions: [],
-      }, [ev.activity]);
+      }, [ ev.activity ]);
       // Fan out to sinks concurrently with simple error handling
       await Promise.allSettled(sinks.map((s) => s.send(ev)));
       const nev: NotificationEmittedEvent = {

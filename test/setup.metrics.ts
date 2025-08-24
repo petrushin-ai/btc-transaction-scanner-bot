@@ -1,4 +1,4 @@
-import {afterAll} from "bun:test";
+import { afterAll } from "bun:test";
 
 import "./_metrics-preload";
 
@@ -29,7 +29,7 @@ function formatDetails(d?: Record<string, unknown>): string {
     const entries = Object.entries(d);
     if (entries.length === 0) return "";
     return entries
-        .map(([k, v]) => `${k}=${typeof v === "number" ? v : JSON.stringify(v)}`)
+        .map(([ k, v ]) => `${k}=${typeof v === "number" ? v : JSON.stringify(v)}`)
         .join(" ");
 }
 

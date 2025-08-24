@@ -1,5 +1,5 @@
-import {beforeAll} from "bun:test";
-import {execSync} from "child_process";
+import { beforeAll } from "bun:test";
+import { execSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -19,7 +19,7 @@ beforeAll(() => {
   // eslint-disable-next-line no-console
   console.log("[pre-test] Block fixtures missing. Fetching via fixtures:get-blocks...");
   try {
-    execSync("bun run fixtures:get-blocks", {stdio: "inherit"});
+    execSync("bun run fixtures:get-blocks", { stdio: "inherit" });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     // eslint-disable-next-line no-console

@@ -1,23 +1,23 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 
-import {BitcoinService} from "@/application/services/BitcoinService";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import type {ParsedBlock, WatchedAddress} from "@/types/blockchain";
+import { BitcoinService } from "@/application/services/BitcoinService";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { ParsedBlock, WatchedAddress } from "@/types/blockchain";
 
-import {emitMetric} from "./_metrics";
+import { emitMetric } from "./_metrics";
 
 class MockRpcTps extends BitcoinRpcClient {
     private blocks: ParsedBlock[];
     private height: number;
 
     constructor(blocks: ParsedBlock[]) {
-        super({url: "http://localhost:0"});
+        super({ url: "http://localhost:0" });
         this.blocks = blocks;
         this.height = 0;
     }
 
     async getBlockchainInfo(): Promise<any> {
-        return {chain: "main"};
+        return { chain: "main" };
     }
 
     async getBlockCount(): Promise<number> {
@@ -42,7 +42,7 @@ class MockRpcTps extends BitcoinRpcClient {
                         (o) =>
                             ({
                                 value: o.valueBtc,
-                                scriptPubKey: {address: o.address, type: o.scriptType}
+                                scriptPubKey: { address: o.address, type: o.scriptType }
                             })
                     ),
             })),
@@ -63,10 +63,10 @@ function makeBlocks(
     const blocks: ParsedBlock[] = [];
     let txCounter = 0;
     for (let sec = 0; sec < durationSeconds; sec++) {
-        const txs = Array.from({length: tps}, () => ({
+        const txs = Array.from({ length: tps }, () => ({
             txid: `tx_${txCounter++}`,
             inputs: [],
-            outputs: watched.slice(0, 1).map((w) => ({address: w.address, valueBtc: 0.0001})),
+            outputs: watched.slice(0, 1).map((w) => ({ address: w.address, valueBtc: 0.0001 })),
         }));
         blocks.push({
             hash: `blk_${sec}`,
@@ -80,10 +80,10 @@ function makeBlocks(
 
 describe("Scalability", () => {
     test("1000 addresses and sustained 7 TPS", async () => {
-        const watched: WatchedAddress[] = Array.from({length: 1000}, (_, i) => ({address: `addr_${i}`}));
+        const watched: WatchedAddress[] = Array.from({ length: 1000 }, (_, i) => ({ address: `addr_${i}` }));
         const blocks = makeBlocks(7, 10, watched); // 10 seconds at 7 TPS => 70 tx total
         const rpc = new MockRpcTps(blocks);
-        const svc = new BitcoinService(rpc, {parseRawBlocks: false, pollIntervalMs: 5});
+        const svc = new BitcoinService(rpc, { parseRawBlocks: false, pollIntervalMs: 5 });
         await svc.connect();
 
         // Iterate through all blocks simulating 1 block per second
@@ -101,7 +101,7 @@ describe("Scalability", () => {
             name: "process_7tps_10s_total_ms",
             value: Math.round(totalMs),
             unit: "ms",
-            details: {totalActivities}
+            details: { totalActivities }
         });
 
         expect(totalActivities).toBeGreaterThan(0);

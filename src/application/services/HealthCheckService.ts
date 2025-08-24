@@ -1,8 +1,8 @@
-import {logHealthResult} from "@/application/helpers/healthcheck";
-import type {HealthResult} from "@/types/healthcheck";
+import { logHealthResult } from "@/application/helpers/healthcheck";
+import type { HealthResult } from "@/types/healthcheck";
 
-import {BitcoinService} from "./BitcoinService";
-import {CurrencyService} from "./CurrencyService";
+import { BitcoinService } from "./BitcoinService";
+import { CurrencyService } from "./CurrencyService";
 
 export class HealthCheckService {
   async runStartupChecks(
@@ -11,7 +11,7 @@ export class HealthCheckService {
   ): Promise<HealthResult[]> {
     await bitcoin.connect();
 
-    const [btcHealth, curHealth] = await Promise.all([
+    const [ btcHealth, curHealth ] = await Promise.all([
       (async () => {
         try {
           return await bitcoin.ping();
@@ -23,7 +23,7 @@ export class HealthCheckService {
             status: "error",
             latencyMs: 0,
             checkedAt: new Date().toISOString(),
-            details: {error: message}
+            details: { error: message }
           } as HealthResult;
         }
       })(),
@@ -38,7 +38,7 @@ export class HealthCheckService {
             status: "error",
             latencyMs: 0,
             checkedAt: new Date().toISOString(),
-            details: {error: message}
+            details: { error: message }
           } as HealthResult;
         }
       })(),
@@ -55,7 +55,7 @@ export class HealthCheckService {
       throw new Error(`Currency provider health check failed: ${curHealth.details && (curHealth.details as any).error || "unknown error"}`);
     }
 
-    return [btcHealth, curHealth];
+    return [ btcHealth, curHealth ];
   }
 }
 

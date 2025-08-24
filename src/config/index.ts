@@ -4,9 +4,9 @@ import path from "path";
 
 import { normalizeWatchedAddresses } from "@/application/helpers/bitcoin";
 import { getAddressVersionsForNetwork } from "@/infrastructure/bitcoin/raw/Address";
-import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
+import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 
-import {loadEnvFiles} from "./env";
+import { loadEnvFiles } from "./env";
 
 export type AppConfig = {
   bitcoinRpcUrl: string;
@@ -42,15 +42,15 @@ function parseWatchAddresses(raw: string | undefined): { address: string; label?
     .map((s) => s.trim())
     .filter(Boolean)
     .map((item) => {
-      const [address, label] = item.split(":");
-      return {address, label};
+      const [ address, label ] = item.split(":");
+      return { address, label };
     });
 }
 
 export function loadConfig(): AppConfig {
   loadEnvFiles();
   // Validate environment variables before reading them
-  const ajv = new Ajv({allErrors: true, coerceTypes: true, useDefaults: false});
+  const ajv = new Ajv({ allErrors: true, coerceTypes: true, useDefaults: false });
   addFormats(ajv);
   try {
     const schema = {
@@ -60,56 +60,56 @@ export function loadConfig(): AppConfig {
       ],
       additionalProperties: false,
       properties: {
-        API_KEY_COINMARKETCAP: {type: "string"},
+        API_KEY_COINMARKETCAP: { type: "string" },
         BTC_RPC_API_URL: {
           type: "string",
           allOf: [
-            {format: "uri"},
-            {pattern: "^https?://"},
+            { format: "uri" },
+            { pattern: "^https?://" },
           ],
         },
         MAX_EVENT_QUEUE_SIZE: {
           anyOf: [
-            {type: "integer", minimum: 1},
-            {type: "string", pattern: "^[0-9]+$"},
+            { type: "integer", minimum: 1 },
+            { type: "string", pattern: "^[0-9]+$" },
           ],
         },
         BITCOIN_POLL_INTERVAL_MS: {
           anyOf: [
-            {type: "integer", minimum: 1},
-            {type: "string", pattern: "^[0-9]+$"},
+            { type: "integer", minimum: 1 },
+            { type: "string", pattern: "^[0-9]+$" },
           ],
         },
         COINMARKETCAP_BASE_URL: { type: "string" },
         RESOLVE_INPUT_ADDRESSES: {
           anyOf: [
-            {type: "boolean"},
-            {type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""]},
+            { type: "boolean" },
+            { type: "string", enum: [ "true", "false", "TRUE", "FALSE", "True", "False", "" ] },
           ],
         },
-        PARSE_RAW_BLOCKS: {type: "boolean"},
-        WATCH_ADDRESSES_FILE: {type: "string"},
-        WATCH_ADDRESSES: {type: "string"},
+        PARSE_RAW_BLOCKS: { type: "boolean" },
+        WATCH_ADDRESSES_FILE: { type: "string" },
+        WATCH_ADDRESSES: { type: "string" },
         // Workers
         WORKER_ID: { type: "string" },
         WORKER_MEMBERS: { type: "string" },
-        APP_ENV: {type: "string"},
-        NODE_ENV: {type: "string"},
-        LOG_SERVICE_NAME: {type: "string"},
-        LOG_LEVEL: {type: "string"},
+        APP_ENV: { type: "string" },
+        NODE_ENV: { type: "string" },
+        LOG_SERVICE_NAME: { type: "string" },
+        LOG_LEVEL: { type: "string" },
         LOG_PRETTY: {
           anyOf: [
-            {type: "boolean"},
-            {type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""]},
+            { type: "boolean" },
+            { type: "string", enum: [ "true", "false", "TRUE", "FALSE", "True", "False", "" ] },
           ],
         },
         // Sinks
         SINKS_ENABLED: { type: "string" },
-        SINK_STDOUT_PRETTY: { anyOf: [ {type: "boolean"}, {type: "string"} ] },
+        SINK_STDOUT_PRETTY: { anyOf: [ { type: "boolean" }, { type: "string" } ] },
         SINK_FILE_PATH: { type: "string" },
         SINK_WEBHOOK_URL: { type: "string" },
         SINK_WEBHOOK_HEADERS: { type: "string" },
-        SINK_WEBHOOK_MAX_RETRIES: { anyOf: [ {type: "integer"}, {type: "string"} ] },
+        SINK_WEBHOOK_MAX_RETRIES: { anyOf: [ { type: "integer" }, { type: "string" } ] },
         SINK_KAFKA_BROKERS: { type: "string" },
         SINK_KAFKA_TOPIC: { type: "string" },
         SINK_NATS_URL: { type: "string" },

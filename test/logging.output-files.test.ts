@@ -37,7 +37,7 @@ describe("Logger file outputs (JSON and NDJSON)", () => {
     expect(mainRecords.length).toBe(2);
     expect(secondaryRecords.length).toBe(2);
 
-    for (const r of [...mainRecords, ...secondaryRecords]) {
+    for (const r of [ ...mainRecords, ...secondaryRecords ]) {
       expect(typeof r.level).toBe("string");
       expect(typeof r.time === "string" || typeof r.time === "number").toBe(true);
     }
@@ -72,7 +72,7 @@ describe("Logger file outputs (JSON and NDJSON)", () => {
     expect(mainRecords.length).toBe(2);
     expect(secondaryRecords.length).toBe(2);
 
-    for (const r of [...mainRecords, ...secondaryRecords]) {
+    for (const r of [ ...mainRecords, ...secondaryRecords ]) {
       expect(typeof r.level).toBe("string");
       expect(typeof r.time === "string" || typeof r.time === "number").toBe(true);
     }

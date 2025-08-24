@@ -1,17 +1,17 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import {BitcoinService} from "@/application/services/BitcoinService";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import type {WatchedAddress} from "@/types/blockchain";
+import { BitcoinService } from "@/application/services/BitcoinService";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { WatchedAddress } from "@/types/blockchain";
 
-import {emitMetric} from "./_metrics";
+import { emitMetric } from "./_metrics";
 
 // Minimal dummy RPC to satisfy constructor; we won't call network in this test
 class DummyRpc extends BitcoinRpcClient {
   constructor() {
-    super({url: "http://localhost:0"});
+    super({ url: "http://localhost:0" });
   }
 }
 
@@ -19,7 +19,7 @@ function loadAddresses(limit: number): WatchedAddress[] {
   const p = path.join(process.cwd(), "addresses.json");
   const raw = fs.readFileSync(p, "utf8");
   const arr = JSON.parse(raw) as { address: string; label?: string }[];
-  return arr.slice(0, limit).map((x) => ({address: x.address, label: x.label}));
+  return arr.slice(0, limit).map((x) => ({ address: x.address, label: x.label }));
 }
 
 function loadLatestParsedBlock(): any {
@@ -35,7 +35,7 @@ describe("Transaction matching performance", () => {
     const addresses = loadAddresses(1000);
     // Build a ParsedBlock using verbose fixture via service path (inputs empty)
     const rpc = new DummyRpc();
-    const svc = new BitcoinService(rpc, {resolveInputAddresses: false, parseRawBlocks: false});
+    const svc = new BitcoinService(rpc, { resolveInputAddresses: false, parseRawBlocks: false });
 
     const verbose = loadLatestParsedBlock();
     const block = {
@@ -55,7 +55,7 @@ describe("Transaction matching performance", () => {
       name: "check_1000_addresses_ms",
       value: Math.round(t1 - t0),
       unit: "ms",
-      details: {activities: activities.length}
+      details: { activities: activities.length }
     });
     // Time budget: aim for < 50ms on a typical machine
     expect(t1 - t0).toBeLessThan(50);

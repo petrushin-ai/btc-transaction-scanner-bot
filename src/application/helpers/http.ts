@@ -15,7 +15,7 @@ export const JSON_HEADERS: RequestHeaders = {
 };
 
 // Keep-Alive via undici per-origin pools
-import {fetch as undiciFetch, Pool} from "undici";
+import { fetch as undiciFetch, Pool } from "undici";
 
 type KeepAliveConfig = {
   defaultConnections: number;
@@ -75,7 +75,7 @@ export async function fetchJson<T = unknown>(url: string, opts: FetchJsonOptions
   const timeoutMs = opts.timeoutMs ?? 5000;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const headers: RequestHeaders = {...JSON_HEADERS, ...(opts.headers || {})};
+  const headers: RequestHeaders = { ...JSON_HEADERS, ...(opts.headers || {}) };
 
   // Stringify body if provided and not already a string
   let body: string | undefined = undefined;

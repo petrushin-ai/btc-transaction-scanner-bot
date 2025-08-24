@@ -1,8 +1,8 @@
 import os from "os";
 import path from "path";
-import pino, {Logger as PinoLogger} from "pino";
+import pino, { Logger as PinoLogger } from "pino";
 
-import {loadEnvFiles} from "../../config/env";
+import { loadEnvFiles } from "../../config/env";
 import {
   buildStdoutStream,
   createFileDestination,
@@ -25,7 +25,7 @@ export type LoggerOptions = {
 const cachedByFileName: Map<string, AppLogger> = new Map();
 
 function getLogger(arg?: string | LoggerOptions): AppLogger {
-  const options: LoggerOptions = typeof arg === "string" ? {fileName: arg} : (arg || {});
+  const options: LoggerOptions = typeof arg === "string" ? { fileName: arg } : (arg || {});
   const fileName = options.fileName?.trim();
   const useNdjson = options.ndjson ?? false;
 
@@ -36,7 +36,7 @@ function getLogger(arg?: string | LoggerOptions): AppLogger {
   // logger to the validated application config and allows graceful defaults.
   loadEnvFiles();
 
-  const {environment, serviceName, logLevel, logPretty} = getLoggingEnv();
+  const { environment, serviceName, logLevel, logPretty } = getLoggingEnv();
 
   // Resolve the project root (the nearest directory containing package.json)
   const projectRoot = findProjectRoot(process.cwd());
@@ -66,12 +66,12 @@ function getLogger(arg?: string | LoggerOptions): AppLogger {
   const loggerInstance = pino(
     {
       level: logLevel,
-      base: {service: serviceName, env: environment, pid: process.pid, hostname: os.hostname()},
+      base: { service: serviceName, env: environment, pid: process.pid, hostname: os.hostname() },
       timestamp: pino.stdTimeFunctions.isoTime,
       messageKey: "msg",
       formatters: {
         level(label) {
-          return {level: label};
+          return { level: label };
         },
       },
       hooks: {
@@ -117,9 +117,9 @@ function getLogger(arg?: string | LoggerOptions): AppLogger {
       },
     },
     pino.multistream([
-      {stream: fileStream},
-      ...(secondaryFileStream ? [{stream: secondaryFileStream}] : []),
-      {stream: stdoutStream},
+      { stream: fileStream },
+      ...(secondaryFileStream ? [ { stream: secondaryFileStream } ] : []),
+      { stream: stdoutStream },
     ])
   );
   cachedByFileName.set(cacheKey, loggerInstance);

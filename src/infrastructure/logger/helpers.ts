@@ -1,8 +1,8 @@
 import path from "path";
 import pino from "pino";
-import {Writable} from "stream";
+import { Writable } from "stream";
 
-import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
+import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 
 export type LoggingEnv = {
   environment: string;
@@ -18,7 +18,7 @@ export function getLoggingEnv(): LoggingEnv {
   const logLevel = process.env.LOG_LEVEL || defaultLevel;
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toLowerCase() === "true";
-  return {environment, serviceName, logLevel, logPretty};
+  return { environment, serviceName, logLevel, logPretty };
 }
 
 export function fileExists(filePath: string): boolean {
@@ -66,7 +66,7 @@ export function normalizeLogFileName(rawName: string, ndjson: boolean): string {
 }
 
 export function createFileDestination(filePath: string, isSync: boolean): pino.DestinationStream {
-  return pino.destination({dest: filePath, sync: isSync});
+  return pino.destination({ dest: filePath, sync: isSync });
 }
 
 export function buildStdoutStream(logPretty: boolean): pino.DestinationStream {
@@ -106,7 +106,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
     if (stat.size === 0) {
       const init = Buffer.from("[]\n", "utf-8");
       storage.write(fd, init, 0, init.length, 0);
-      return {insertPos: 1, hasItems: false}; // position of ']'
+      return { insertPos: 1, hasItems: false }; // position of ']'
     }
 
     // Read a small tail window to locate the last closing bracket
@@ -121,7 +121,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
       storage.ftruncate(fd, 0);
       const init = Buffer.from("[]\n", "utf-8");
       storage.write(fd, init, 0, init.length, 0);
-      return {insertPos: 1, hasItems: false};
+      return { insertPos: 1, hasItems: false };
     }
 
     // Find char before the closing bracket to detect emptiness
@@ -131,7 +131,7 @@ export function createJsonArrayFileDestination(filePath: string): pino.Destinati
 
     // Compute the absolute file position of the closing bracket we will overwrite
     const bracketPos = (stat.size - readSize) + idx;
-    return {insertPos: bracketPos, hasItems};
+    return { insertPos: bracketPos, hasItems };
   }
 
   let state = initializeArrayIfNeeded();
@@ -193,7 +193,7 @@ export function makeCallable<T extends object>(
   const protoNames = proto ? Object.getOwnPropertyNames(proto) : [];
   const symbolKeys = (Object.getOwnPropertySymbols(defaultInstance) as (string | symbol)[]) || [];
   const propertyKeys = [
-    ...new Set<string | symbol>([...ownNames, ...protoNames, ...symbolKeys]),
+    ...new Set<string | symbol>([ ...ownNames, ...protoNames, ...symbolKeys ]),
   ];
 
   for (const key of propertyKeys) {

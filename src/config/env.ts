@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 import path from "path";
 
-import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
+import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 
 function fileExists(p: string): boolean {
   const storage = getFileStorage();
@@ -42,7 +42,7 @@ export function loadEnvFiles(cwd: string = process.cwd()): void {
   for (const p of candidates) {
     if (!fileExists(p)) continue;
     // Do not override existing process env variables; external env takes precedence
-    dotenv.config({path: p, override: false});
+    dotenv.config({ path: p, override: false });
   }
 }
 

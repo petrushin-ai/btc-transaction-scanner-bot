@@ -1,6 +1,6 @@
-import {createHash} from "crypto";
+import { createHash } from "crypto";
 
-import {BASE58_ALPHABET, BECH32, NETWORKS, type Network as NetFromConsts} from "../constants";
+import { BASE58_ALPHABET, BECH32, NETWORKS, type Network as NetFromConsts } from "../constants";
 
 export type Network = NetFromConsts;
 
@@ -64,7 +64,7 @@ function bech32HrpExpand(hrp: string): number[] {
 
 function bech32CreateChecksum(hrp: string, data: number[], spec: "bech32" | "bech32m"): number[] {
   const constVal = spec === "bech32" ? BECH32.CONST_BECH32 : BECH32.CONST_BECH32M;
-  const values = [...bech32HrpExpand(hrp), ...data, 0, 0, 0, 0, 0, 0];
+  const values = [ ...bech32HrpExpand(hrp), ...data, 0, 0, 0, 0, 0, 0 ];
   const mod = bech32Polymod(values) ^ constVal;
   const ret: number[] = [];
   for (let p = 0; p < 6; p++) ret.push((mod >> (5 * (5 - p))) & 31);
@@ -73,7 +73,7 @@ function bech32CreateChecksum(hrp: string, data: number[], spec: "bech32" | "bec
 
 function bech32Encode(hrp: string, data: number[], spec: "bech32" | "bech32m"): string {
   const checksum = bech32CreateChecksum(hrp, data, spec);
-  const combined = [...data, ...checksum];
+  const combined = [ ...data, ...checksum ];
   let out = `${hrp}1`;
   for (const c of combined) out += BECH32.CHARSET[c];
   return out;
@@ -100,13 +100,13 @@ function bech32Decode(addr: string): {
     data.push(idx);
   }
   // Verify checksum for both bech32 and bech32m to infer spec
-  const values = [...bech32HrpExpand(hrp), ...data];
+  const values = [ ...bech32HrpExpand(hrp), ...data ];
   const mod = bech32Polymod(values);
   const isBech32 = mod === BECH32.CONST_BECH32;
   const isBech32m = mod === BECH32.CONST_BECH32M;
   if (!isBech32 && !isBech32m) return undefined;
   const spec = isBech32 ? "bech32" : "bech32m";
-  return {hrp, data: data.slice(0, data.length - 6), spec};
+  return { hrp, data: data.slice(0, data.length - 6), spec };
 }
 
 // Convert 8-bit to 5-bit groups
@@ -139,9 +139,9 @@ export function encodeWitnessAddress(
   witnessProgram: Buffer
 ): string {
   const spec = witnessVersion === 0 ? "bech32" : "bech32m";
-  const data: number[] = [witnessVersion];
+  const data: number[] = [ witnessVersion ];
   const prog5 = convertBits(witnessProgram, 8, 5, true);
-  return bech32Encode(hrp, [...data, ...prog5], spec);
+  return bech32Encode(hrp, [ ...data, ...prog5 ], spec);
 }
 
 export function decodeWitnessAddress(addr: string): {
@@ -160,7 +160,7 @@ export function decodeWitnessAddress(addr: string): {
   // Validate spec per BIP-350
   if (version === 0 && dec.spec !== "bech32") return undefined;
   if (version !== 0 && dec.spec !== "bech32m") return undefined;
-  return {hrp: dec.hrp, version, program: Buffer.from(prog8)};
+  return { hrp: dec.hrp, version, program: Buffer.from(prog8) };
 }
 
 export function getAddressVersionsForNetwork(network: Network): {
@@ -181,16 +181,16 @@ export function decodeAddress(addr: string): DecodedAddress | undefined {
   const b58 = base58checkDecode(addr);
   if (b58) {
     if (b58.payload.length === 20 && (b58.version === NETWORKS.mainnet.p2pkh || b58.version === NETWORKS.testnet.p2pkh)) {
-      return {kind: "p2pkh", version: b58.version, hash160: b58.payload};
+      return { kind: "p2pkh", version: b58.version, hash160: b58.payload };
     }
     if (b58.payload.length === 20 && (b58.version === NETWORKS.mainnet.p2sh || b58.version === NETWORKS.testnet.p2sh)) {
-      return {kind: "p2sh", version: b58.version, hash160: b58.payload};
+      return { kind: "p2sh", version: b58.version, hash160: b58.payload };
     }
     return undefined;
   }
   // Try Bech32
   const w = decodeWitnessAddress(addr);
-  if (w) return {kind: "segwit", hrp: w.hrp, version: w.version, program: w.program};
+  if (w) return { kind: "segwit", hrp: w.hrp, version: w.version, program: w.program };
   return undefined;
 }
 
@@ -221,7 +221,7 @@ export function validateAndNormalizeAddress(address: string, network?: Network):
       if (decoded.kind === "p2sh" && decoded.version !== versions.p2sh) throw new Error("Base58 version/network mismatch");
     }
   }
-  return {normalized, decoded};
+  return { normalized, decoded };
 }
 
 function base58checkDecode(s: string): { version: number; payload: Buffer } | undefined {
@@ -249,7 +249,7 @@ function base58checkDecode(s: string): { version: number; payload: Buffer } | un
   const checksum = buf.subarray(buf.length - 4);
   const sum = sha256d(buf.subarray(0, buf.length - 4)).subarray(0, 4);
   if (!checksum.equals(sum)) return undefined;
-  return {version, payload};
+  return { version, payload };
 }
 
 

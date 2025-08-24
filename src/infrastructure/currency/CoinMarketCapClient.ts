@@ -1,7 +1,7 @@
-import {BTC, USD, USDT} from "@/application/constants";
-import {fetchJson, HTTP_METHOD, JSON_HEADERS} from "@/application/helpers/http";
-import type {CurrencyCode, ExchangeRate} from "@/types/currency";
-import type {HealthResult} from "@/types/healthcheck";
+import { BTC, USD, USDT } from "@/application/constants";
+import { fetchJson, HTTP_METHOD, JSON_HEADERS } from "@/application/helpers/http";
+import type { CurrencyCode, ExchangeRate } from "@/types/currency";
+import type { HealthResult } from "@/types/healthcheck";
 
 export type CoinMarketCapClientOptions = {
   apiKey: string;
@@ -85,7 +85,7 @@ export class CoinMarketCapClient {
           status: "error",
           latencyMs,
           checkedAt: new Date().toISOString(),
-          details: {error: message},
+          details: { error: message },
         };
       }
     }
@@ -96,7 +96,7 @@ export class CoinMarketCapClient {
     // If base is crypto: symbol=base, convert=quote
     // If base is fiat and quote is crypto: symbol=quote, convert=base, then invert
     if (isCrypto(base)) {
-      const {price, time} = await this.convertOne(base, quote);
+      const { price, time } = await this.convertOne(base, quote);
       return {
         base,
         quote,
@@ -106,7 +106,7 @@ export class CoinMarketCapClient {
       };
     }
     if (isFiat(base) && isCrypto(quote)) {
-      const {price, time} = await this.convertOne(quote, base);
+      const { price, time } = await this.convertOne(quote, base);
       const rate = price === 0 ? 0 : 1 / price;
       return {
         base,
@@ -144,7 +144,7 @@ export class CoinMarketCapClient {
           || data?.last_updated
           || json?.status?.timestamp
           || new Date().toISOString();
-        return {price: q.price, time};
+        return { price: q.price, time };
       }
       // Fallback to quotes/latest
       return await this.fetchQuoteLatest(symbol, convert);
@@ -162,7 +162,7 @@ export class CoinMarketCapClient {
         throw new Error(`CoinMarketCap malformed response for ${symbol}->${convert}`);
       }
       const time = q.last_updated || json?.status?.timestamp || new Date().toISOString();
-      return {price: q.price, time};
+      return { price: q.price, time };
   }
 
   private async fetchKeyInfo(): Promise<{

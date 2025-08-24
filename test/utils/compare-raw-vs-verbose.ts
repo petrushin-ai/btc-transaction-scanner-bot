@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
 
-import {Raw} from "@/infrastructure/bitcoin";
-import type {ParsedRawBlock} from "@/infrastructure/bitcoin/raw/BlockParser";
-import type {ParsedTx} from "@/infrastructure/bitcoin/raw/TxParser";
+import { Raw } from "@/infrastructure/bitcoin";
+import type { ParsedRawBlock } from "@/infrastructure/bitcoin/raw/BlockParser";
+import type { ParsedTx } from "@/infrastructure/bitcoin/raw/TxParser";
 
 function main() {
   const fixturesDir = path.join(process.cwd(), "test/fixtures");
@@ -41,7 +41,7 @@ function main() {
     ),
   };
 
-  console.log(JSON.stringify({type: "test.compare_raw_verbose", ...summary}));
+  console.log(JSON.stringify({ type: "test.compare_raw_verbose", ...summary }));
 }
 
 main();

@@ -1,7 +1,7 @@
-import {SEGWIT, SIZES} from "../constants";
-import type {Network} from "./Address";
-import {btcFromSats, ByteReader, sha256dMany, toHexLE} from "./ByteReader";
-import {decodeScriptPubKey} from "./Script";
+import { SEGWIT, SIZES } from "../constants";
+import type { Network } from "./Address";
+import { btcFromSats, ByteReader, sha256dMany, toHexLE } from "./ByteReader";
+import { decodeScriptPubKey } from "./Script";
 
 export type ParsedTx = {
   txid: string;
@@ -92,10 +92,10 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   const versionBytes = reader.sliceAbsolute(start, start + SIZES.UINT32);
   const preWitness = reader.sliceAbsolute(vinCountStart, posBeforeWitness);
   const locktimeBytes = reader.sliceAbsolute(locktimeStart, locktimeStart + SIZES.LOCKTIME);
-  const txid = toHexLE(sha256dMany([versionBytes, preWitness, locktimeBytes]));
+  const txid = toHexLE(sha256dMany([ versionBytes, preWitness, locktimeBytes ]));
   // witness data omitted intentionally
 
-  return {txid, inputs, outputs};
+  return { txid, inputs, outputs };
 }
 
 

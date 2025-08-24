@@ -1,23 +1,23 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import {BitcoinService} from "@/application/services/BitcoinService";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import type {ParsedBlock} from "@/types/blockchain";
+import { BitcoinService } from "@/application/services/BitcoinService";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { ParsedBlock } from "@/types/blockchain";
 
 class MockRpc extends BitcoinRpcClient {
   private hex: string;
   private header: { height: number; time: number };
 
   constructor(hex: string, header: { height: number; time: number }) {
-    super({url: "http://localhost:0"});
+    super({ url: "http://localhost:0" });
     this.hex = hex;
     this.header = header;
   }
 
   async getBlockchainInfo(): Promise<any> {
-    return {chain: "main"};
+    return { chain: "main" };
   }
 
   async getBlockRawByHash(_hash: string): Promise<string> {
@@ -38,14 +38,14 @@ function loadFixture(): { hex: string; header: { height: number; time: number };
   const jsonPath = rawPath.replace(/\.raw$/, ".json");
   const hex = fs.readFileSync(rawPath, "utf8").trim();
   const json = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
-  return {hex, header: {height: json.height, time: json.time}, json};
+  return { hex, header: { height: json.height, time: json.time }, json };
 }
 
 describe("Service raw parsing path", () => {
   test("parseBlockByHash with parseRawBlocks=true returns expected tx count and metadata", async () => {
-    const {hex, header, json} = loadFixture();
+    const { hex, header, json } = loadFixture();
     const rpc = new MockRpc(hex, header);
-    const svc = new BitcoinService(rpc, {parseRawBlocks: true});
+    const svc = new BitcoinService(rpc, { parseRawBlocks: true });
     await svc.connect();
     const block: ParsedBlock = await svc.parseBlockByHash("ignored");
     expect(block.height).toBe(header.height);

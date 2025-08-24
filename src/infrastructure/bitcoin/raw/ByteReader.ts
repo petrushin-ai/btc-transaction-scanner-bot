@@ -1,4 +1,4 @@
-import {createHash} from "crypto";
+import { createHash } from "crypto";
 
 import {
   NUMBER_UINT64_HIGH_SAFE_LIMIT,

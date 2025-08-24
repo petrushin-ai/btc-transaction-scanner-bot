@@ -37,12 +37,12 @@ export class BitcoinRpcClient {
       params,
     };
     // Inline import to avoid top-level cycle concerns
-    const {fetchJson, HTTP_METHOD} = await import("@/application/helpers/http");
+    const { fetchJson, HTTP_METHOD } = await import("@/application/helpers/http");
     const json = await fetchJson<JsonRpcResponse<T>>(this.url, {
       method: HTTP_METHOD.POST,
       headers: {
         "content-type": "application/json",
-        ...(this.authHeader ? {authorization: this.authHeader} : {}),
+        ...(this.authHeader ? { authorization: this.authHeader } : {}),
       },
       body,
       timeoutMs: this.timeoutMs,
@@ -61,12 +61,12 @@ export class BitcoinRpcClient {
       method: r.method,
       params: r.params || [],
     }));
-    const {fetchJson, HTTP_METHOD} = await import("@/application/helpers/http");
+    const { fetchJson, HTTP_METHOD } = await import("@/application/helpers/http");
     const json = await fetchJson<JsonRpcResponse<unknown>[]>(this.url, {
       method: HTTP_METHOD.POST,
       headers: {
         "content-type": "application/json",
-        ...(this.authHeader ? {authorization: this.authHeader} : {}),
+        ...(this.authHeader ? { authorization: this.authHeader } : {}),
       },
       body: batch,
       timeoutMs: this.timeoutMs,
@@ -93,34 +93,34 @@ export class BitcoinRpcClient {
   }
 
   getBlockHash(height: number): Promise<string> {
-    return this.call("getblockhash", [height]);
+    return this.call("getblockhash", [ height ]);
   }
 
   // verbosity = 2 returns transactions with decoded vin/vout but not previous vout addresses
   // unless txindex is enabled for inputs
   getBlockByHashVerbose2(blockHash: string): Promise<unknown> {
-    return this.call("getblock", [blockHash, 2]);
+    return this.call("getblock", [ blockHash, 2 ]);
   }
 
   // verbosity = 0 returns the raw serialized block as hex string
   getBlockRawByHash(blockHash: string): Promise<string> {
-    return this.call("getblock", [blockHash, 0]);
+    return this.call("getblock", [ blockHash, 0 ]);
   }
 
   // Return the block header (to map hash -> height and time efficiently when parsing raw blocks)
   getBlockHeader(blockHash: string): Promise<{ height: number; time: number }> {
-    return this.call("getblockheader", [blockHash, true]);
+    return this.call("getblockheader", [ blockHash, true ]);
   }
 
   // Fetch previous transaction to resolve input addresses; requires -txindex on node
   // for historical lookups
   getRawTransactionVerbose(txid: string): Promise<unknown> {
-    return this.call("getrawtransaction", [txid, true]);
+    return this.call("getrawtransaction", [ txid, true ]);
   }
 
   // Batch version of getrawtransaction for efficiency
   async getRawTransactionVerboseBatch(txids: string[]): Promise<unknown[]> {
-    const reqs = txids.map((txid) => ({method: "getrawtransaction", params: [txid, true]}));
+    const reqs = txids.map((txid) => ({ method: "getrawtransaction", params: [ txid, true ] }));
     return this.callBatch(reqs);
   }
 

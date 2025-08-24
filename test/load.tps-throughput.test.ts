@@ -69,7 +69,7 @@ function makeBlocks(tps: number, durationSeconds: number, watched: WatchedAddres
 describe("Throughput (TPS) load test", () => {
   test("ramp TPS and measure sustained throughput", async () => {
     const watched: WatchedAddress[] = Array.from({ length: 1000 }, (_, i) => ({ address: `addr_${i}` }));
-    const levels = [5, 10, 20, 50];
+    const levels = [ 5, 10, 20, 50 ];
     const durationSeconds = 2;
 
     let maxMeasured = 0;
@@ -160,7 +160,7 @@ describe("Throughput (TPS) load test", () => {
       const elapsedMs = performance.now() - t0;
       const avgTps = processedTx / (elapsedMs / 1000);
 
-      const sorted = [...perBlockTps].sort((a, b) => a - b);
+      const sorted = [ ...perBlockTps ].sort((a, b) => a - b);
       const n = sorted.length;
       const median = n % 2 === 1 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
       const p95 = sorted[Math.floor(0.95 * (n - 1))];

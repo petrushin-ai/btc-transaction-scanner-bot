@@ -64,7 +64,7 @@ export const SEGWIT = {
 export const BECH32 = {
   CHARSET: "qpzry9x8gf2tvdw0s3jn54khce6mua7l",
   // Polymod generators
-  GENERATORS: [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3],
+  GENERATORS: [ 0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3 ],
   CONST_BECH32: 1,
   CONST_BECH32M: 0x2bc830a3,
 } as const;

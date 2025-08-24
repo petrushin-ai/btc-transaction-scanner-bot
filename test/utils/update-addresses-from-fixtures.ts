@@ -1,9 +1,9 @@
-import {spawnSync} from "child_process";
+import { spawnSync } from "child_process";
 import fs from "fs";
 import path from "path";
 
-import type {Network} from "@/infrastructure/bitcoin/raw/Address";
-import {parseRawBlock} from "@/infrastructure/bitcoin/raw/BlockParser";
+import type { Network } from "@/infrastructure/bitcoin/raw/Address";
+import { parseRawBlock } from "@/infrastructure/bitcoin/raw/BlockParser";
 
 type AddressEntry = { address: string; label?: string };
 
@@ -26,8 +26,8 @@ function listFixturePairs(fixturesDir: string): {
     bases.set(base, existing);
   }
   const pairs: { base: string; currentRaw: string; prevRaw: string }[] = [];
-  for (const [base, v] of bases) {
-    if (v.current && v.prev) pairs.push({base, currentRaw: v.current, prevRaw: v.prev});
+  for (const [ base, v ] of bases) {
+    if (v.current && v.prev) pairs.push({ base, currentRaw: v.current, prevRaw: v.prev });
   }
   // sort by numeric height in base name
   pairs.sort((a, b) => {
@@ -50,8 +50,8 @@ function extractAddressesFromBlockHex(hex: string, network: Network): {
 } {
   const block = parseRawBlock(hex, network);
   const outputs = block.transactions
-    .flatMap((tx) => tx.outputs.map((o) => ({address: o.address})));
-  return {txCount: block.transactions.length, outputs};
+    .flatMap((tx) => tx.outputs.map((o) => ({ address: o.address })));
+  return { txCount: block.transactions.length, outputs };
 }
 
 function upsertAddresses(
@@ -60,14 +60,14 @@ function upsertAddresses(
   limit: number,
   labelLookup?: Map<string, string | undefined>
 ): AddressEntry[] {
-  const existing = new Map(target.map((e) => [e.address, e] as const));
+  const existing = new Map(target.map((e) => [ e.address, e ] as const));
   let added = 0;
   for (const addr of candidates) {
     if (!addr) continue;
     if (added >= limit) break;
     if (!existing.has(addr)) {
       const label = labelLookup?.get(addr);
-      const entry: AddressEntry = label ? {address: addr, label} : {address: addr};
+      const entry: AddressEntry = label ? { address: addr, label } : { address: addr };
       target.push(entry);
       existing.set(addr, entry);
       added++;
@@ -89,7 +89,7 @@ export async function updateAddressesFromLatestFixture(options?: { maxPerCategor
   let pairs = listFixturePairs(fixturesDir);
   if (pairs.length === 0) {
     console.warn("No fixture pairs found in test/fixtures. Attempting to fetch latest blocks...");
-    const result = spawnSync("bun", ["test/utils/fetch-block-fixtures.ts"], {stdio: "inherit"});
+    const result = spawnSync("bun", [ "test/utils/fetch-block-fixtures.ts" ], { stdio: "inherit" });
     if ((result.status ?? 1) !== 0) {
       console.error("Failed to fetch block fixtures. Cannot update addresses.json");
       process.exit(result.status ?? 1);
@@ -114,8 +114,8 @@ export async function updateAddressesFromLatestFixture(options?: { maxPerCategor
   // Summaries
   console.log(JSON.stringify({
     block: latest.base,
-    current: {txCount: current.txCount},
-    prev: {txCount: prev.txCount}
+    current: { txCount: current.txCount },
+    prev: { txCount: prev.txCount }
   }));
 
   const currentSet = new Set(current.outputs.map((o) => o.address).filter(Boolean) as string[]);
@@ -144,7 +144,7 @@ export async function updateAddressesFromLatestFixture(options?: { maxPerCategor
     existing = [];
   }
 
-  const labelLookup = new Map<string, string | undefined>(existing.map((e) => [e.address, e.label]));
+  const labelLookup = new Map<string, string | undefined>(existing.map((e) => [ e.address, e.label ]));
 
   // Upsert up to 500 from each category
   const maxPerCategory = options?.maxPerCategory ?? 500;

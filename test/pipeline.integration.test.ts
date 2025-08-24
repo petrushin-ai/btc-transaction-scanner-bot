@@ -27,7 +27,7 @@ describe("Pipeline integration", () => {
     const events = new EventService({ maxQueueSize: 10 });
     const btc = fakeBtcService as any;
     const currency = fakeCurrencyService as any;
-    const cfg = { watch: [], worker: { id: "w1", members: ["w1"] } } as any;
+    const cfg = { watch: [], worker: { id: "w1", members: [ "w1" ] } } as any;
 
     let sawParsed = false;
     let sawActivity = 0;

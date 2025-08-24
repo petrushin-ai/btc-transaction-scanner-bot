@@ -50,7 +50,7 @@ export class EventService {
   /** Returns sum backlog across all types to drive global backpressure decisions. */
   public getTotalBacklogDepth(): number {
     let total = 0;
-    for (const [type] of this.queues) {
+    for (const [ type ] of this.queues) {
       total += this.getDepth(type);
     }
     return total;

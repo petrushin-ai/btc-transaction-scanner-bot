@@ -1,25 +1,25 @@
-import {BTC, USD} from "@/application/constants";
-import {configureHttpKeepAlive} from "@/application/helpers/http";
+import { BTC, USD } from "@/application/constants";
+import { configureHttpKeepAlive } from "@/application/helpers/http";
 import {
   BitcoinService,
   CurrencyService,
   EventService,
   HealthCheckService
 } from "@/application/services";
-import {FeatureFlagsService} from "@/application/services/FeatureFlagsService";
-import {registerEventPipeline} from "@/application/services/Pipeline";
-import {loadConfig} from "@/config";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
-import {logger} from "@/infrastructure/logger";
+import { FeatureFlagsService } from "@/application/services/FeatureFlagsService";
+import { registerEventPipeline } from "@/application/services/Pipeline";
+import { loadConfig } from "@/config";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
+import { logger } from "@/infrastructure/logger";
 
 async function main() {
   const cfg = loadConfig();
   const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
   if (env === "production") {
-    logger.info({type: "init", mode: "production", msg: "Starting in production mode"});
+    logger.info({ type: "init", mode: "production", msg: "Starting in production mode" });
   }
-  const rpc = new BitcoinRpcClient({url: cfg.bitcoinRpcUrl});
+  const rpc = new BitcoinRpcClient({ url: cfg.bitcoinRpcUrl });
   const flags = new FeatureFlagsService(
     {
       parseRawBlocks: cfg.parseRawBlocks,
@@ -36,7 +36,7 @@ async function main() {
     parseRawBlocks: cfg.parseRawBlocks,
     flagsService: flags,
   });
-  const events = new EventService({maxQueueSize: cfg.maxEventQueueSize});
+  const events = new EventService({ maxQueueSize: cfg.maxEventQueueSize });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
   });
@@ -67,7 +67,7 @@ async function main() {
   await health.runStartupChecks(btc, currency);
 
   // Register event pipeline (subscriptions & handlers)
-  registerEventPipeline(events, {btc, currency}, cfg);
+  registerEventPipeline(events, { btc, currency }, cfg);
 
   let lastHeight: number | undefined = undefined;
 
@@ -94,7 +94,7 @@ async function main() {
 
 main().catch((err) => {
   const message = err instanceof Error ? err.message : String(err);
-  logger.error({err, msg: `Startup failed: ${message}`});
+  logger.error({ err, msg: `Startup failed: ${message}` });
   process.exit(1);
 });
 

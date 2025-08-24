@@ -1,11 +1,11 @@
-import {createAddressBloomFilter, type AddressBloomFilter} from "@/application/helpers/bitcoin";
-import {BitcoinRpcClient, Raw} from "@/infrastructure/bitcoin";
+import { createAddressBloomFilter, type AddressBloomFilter } from "@/application/helpers/bitcoin";
+import { BitcoinRpcClient, Raw } from "@/infrastructure/bitcoin";
 import {
   NULL_TXID_64,
   POLL_INTERVAL_MS_DEFAULT,
   PREV_TX_CACHE_MAX_DEFAULT
 } from "@/infrastructure/bitcoin/constants";
-import {logger, type AppLogger} from "@/infrastructure/logger";
+import { logger, type AppLogger } from "@/infrastructure/logger";
 import type {
   AddressActivity,
   BlockchainService,
@@ -13,9 +13,9 @@ import type {
   ParsedTransaction,
   WatchedAddress,
 } from "@/types/blockchain";
-import type {HealthResult} from "@/types/healthcheck";
+import type { HealthResult } from "@/types/healthcheck";
 
-import {FeatureFlagsService, type FeatureFlags} from "./FeatureFlagsService";
+import { FeatureFlagsService, type FeatureFlags } from "./FeatureFlagsService";
 
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
@@ -67,13 +67,13 @@ export class BitcoinService implements BlockchainService {
         const key = w.label.trim().toLowerCase();
         if (key.length === 0) continue;
         const arr = labelIndex.get(key) || [];
-        arr.push({address: w.address, label: w.label});
+        arr.push({ address: w.address, label: w.label });
         labelIndex.set(key, arr);
       }
     }
     const addresses = watched.map((w) => w.address);
     const bloom = createAddressBloomFilter(addresses, 0.01);
-    this._watchedCache = {sourceRef: watched, watchSet, labelIndex, bloom};
+    this._watchedCache = { sourceRef: watched, watchSet, labelIndex, bloom };
   }
 
   /** Read-only view of the precomputed watch set. */
@@ -88,7 +88,7 @@ export class BitcoinService implements BlockchainService {
 
   private getFlags(): FeatureFlags {
     if (this.flagsService) return this.flagsService.getFlags();
-    return {parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses};
+    return { parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses };
   }
 
   private isDevelopment(): boolean {
@@ -122,7 +122,7 @@ export class BitcoinService implements BlockchainService {
         status: "ok",
         latencyMs,
         checkedAt: new Date().toISOString(),
-        details: {chain: info.chain, blocks: info.blocks},
+        details: { chain: info.chain, blocks: info.blocks },
       };
     } catch (err) {
       const latencyMs = Date.now() - started;
@@ -133,7 +133,7 @@ export class BitcoinService implements BlockchainService {
         status: "error",
         latencyMs,
         checkedAt: new Date().toISOString(),
-        details: {error: message},
+        details: { error: message },
       };
     }
   }
@@ -156,13 +156,13 @@ export class BitcoinService implements BlockchainService {
       const latest = await this.rpc.getBlockCount();
       if (this.isDevelopment() || (this.verbose && !this.isProduction())) {
         const waitedMs = Date.now() - pollStartedAt;
-        this.log.info({type: "poll.tick", heightChecked: latest, waitedMs});
+        this.log.info({ type: "poll.tick", heightChecked: latest, waitedMs });
       }
       if (latest > current) {
         const hash = await this.rpc.getBlockHash(latest);
         if (this.isDevelopment() || (this.verbose && !this.isProduction())) {
           const waitedMs = Date.now() - pollStartedAt;
-          this.log.info({type: "poll.new_block", newHeight: latest, waitedMs});
+          this.log.info({ type: "poll.new_block", newHeight: latest, waitedMs });
         }
         return this.parseBlockByHash(hash);
       }
@@ -181,7 +181,7 @@ export class BitcoinService implements BlockchainService {
       };
     }
     // Raw path
-    const [hex, header] = await Promise.all([
+    const [ hex, header ] = await Promise.all([
       this.rpc.getBlockRawByHash(blockHash),
       this.rpc.getBlockHeader(blockHash),
     ]);
@@ -226,7 +226,7 @@ export class BitcoinService implements BlockchainService {
           const prevOut = prev?.vout?.[vin.prevVout];
           const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
           const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-          inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
+          inputs.push({ address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined });
         }
         (tx as any).inputs = inputs;
       }
@@ -259,13 +259,13 @@ export class BitcoinService implements BlockchainService {
           const key = w.label.trim().toLowerCase();
           if (key.length === 0) continue;
           const arr = labelIndex.get(key) || [];
-          arr.push({address: w.address, label: w.label});
+          arr.push({ address: w.address, label: w.label });
           labelIndex.set(key, arr);
         }
       }
       const addresses = watched.map((w) => w.address);
       bloom = createAddressBloomFilter(addresses, 0.01);
-      this._watchedCache = {sourceRef: watched, watchSet, labelIndex, bloom};
+      this._watchedCache = { sourceRef: watched, watchSet, labelIndex, bloom };
     }
 
     const activities: AddressActivity[] = [];
@@ -306,7 +306,7 @@ export class BitcoinService implements BlockchainService {
       }
 
       // Emit net activities without building a union Set
-      for (const [addr, inSum] of incoming) {
+      for (const [ addr, inSum ] of incoming) {
         const outSum = outgoing.get(addr) || 0;
         if (inSum > 0 && outSum > 0) {
           const net = inSum - outSum;
@@ -335,7 +335,7 @@ export class BitcoinService implements BlockchainService {
           matchedAddressesThisTx.add(addr);
         }
       }
-      for (const [addr, outSum] of outgoing) {
+      for (const [ addr, outSum ] of outgoing) {
         if (matchedAddressesThisTx.has(addr)) continue;
         if (outSum > 0) {
           activities.push({
@@ -355,7 +355,7 @@ export class BitcoinService implements BlockchainService {
       // emit a zero-value activity for the associated watched address (if not already matched above).
       if (opReturnUtf8 && labelIndex.size > 0) {
         const opLower = opReturnUtf8.toLowerCase();
-        for (const [labelKey, items] of labelIndex) {
+        for (const [ labelKey, items ] of labelIndex) {
           if (!labelKey) continue;
           if (opLower.includes(labelKey)) {
             for (const item of items) {
@@ -442,7 +442,7 @@ export class BitcoinService implements BlockchainService {
           const prevOut = prev?.vout?.[vin.vout];
           const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
           const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-          inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
+          inputs.push({ address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined });
         }
       }
 

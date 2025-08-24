@@ -1,10 +1,10 @@
 import path from "path";
-import {fileURLToPath} from "url";
+import { fileURLToPath } from "url";
 
-import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
-import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
-import type {CurrencyCode, CurrencyRateProvider, ExchangeRate} from "@/types/currency";
-import type {HealthResult} from "@/types/healthcheck";
+import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
+import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
+import type { CurrencyCode, CurrencyRateProvider, ExchangeRate } from "@/types/currency";
+import type { HealthResult } from "@/types/healthcheck";
 
 export type CurrencyServiceOptions = {
   defaultBase?: CurrencyCode; // e.g. BTC
@@ -178,7 +178,7 @@ export class CurrencyService implements CurrencyRateProvider {
     if (!cache[providerKey] || typeof cache[providerKey] !== "object") {
       cache[providerKey] = {};
     }
-    cache[providerKey][key] = {...rate, cachedAt: new Date().toISOString()};
+    cache[providerKey][key] = { ...rate, cachedAt: new Date().toISOString() };
     this.writeCache(cache);
   }
 }

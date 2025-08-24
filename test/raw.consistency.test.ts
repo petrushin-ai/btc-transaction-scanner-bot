@@ -1,8 +1,8 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 import fs from "fs";
 import path from "path";
 
-import {Raw} from "@/infrastructure/bitcoin";
+import { Raw } from "@/infrastructure/bitcoin";
 
 function readHex(filePath: string): string {
   return fs.readFileSync(filePath, "utf8").trim();

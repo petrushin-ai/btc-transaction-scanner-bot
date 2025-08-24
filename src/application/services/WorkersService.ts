@@ -21,7 +21,7 @@ export class WorkersService {
 
   constructor(selfId: string, members: string[]) {
     if (!selfId) throw new Error("WorkersService requires selfId");
-    if (!members || members.length === 0) members = [selfId];
+    if (!members || members.length === 0) members = [ selfId ];
     this.selfId = selfId;
     this.members = Array.from(new Set(members));
     if (!this.members.includes(selfId)) this.members.push(selfId);

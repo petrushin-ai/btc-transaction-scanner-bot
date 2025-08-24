@@ -1,4 +1,4 @@
-import {OP, PUSH, SCRIPT_LENGTHS, SEGWIT} from "../constants";
+import { OP, PUSH, SCRIPT_LENGTHS, SEGWIT } from "../constants";
 import {
   base58checkEncode,
   encodeWitnessAddress,
@@ -27,7 +27,7 @@ export function decodeScriptPubKey(script: Buffer, network: Network): DecodedScr
   if (script.length >= 1 && script[0] === OP.RETURN) {
     // Extract data payload if present
     const payload = decodePushAt(script, 1);
-    return {type: "nulldata", opReturnDataHex: payload?.toString("hex")};
+    return { type: "nulldata", opReturnDataHex: payload?.toString("hex") };
   }
   // P2PKH: OP_DUP OP_HASH160 0x14 <20-byte-hash> OP_EQUALVERIFY OP_CHECKSIG
   if (
@@ -40,7 +40,7 @@ export function decodeScriptPubKey(script: Buffer, network: Network): DecodedScr
   ) {
     const hash160 = script.subarray(3, 23);
     const address = base58checkEncode(versions.p2pkh, hash160);
-    return {type: "pubkeyhash", address};
+    return { type: "pubkeyhash", address };
   }
   // P2SH: OP_HASH160 0x14 <20> OP_EQUAL
   if (
@@ -51,26 +51,26 @@ export function decodeScriptPubKey(script: Buffer, network: Network): DecodedScr
   ) {
     const hash160 = script.subarray(2, 22);
     const address = base58checkEncode(versions.p2sh, hash160);
-    return {type: "scripthash", address};
+    return { type: "scripthash", address };
   }
   // SegWit v0: 0x00 0x14 (keyhash) or 0x00 0x20 (scripthash)
   if (script.length >= 2 && script[0] === OP.OP_0 && (script[1] === PUSH.BYTES_20 || script[1] === PUSH.BYTES_32)) {
     const prog = script.subarray(2);
     if (script[1] === PUSH.BYTES_20) {
       const address = encodeWitnessAddress(versions.hrp, SEGWIT.V0, prog);
-      return {type: "witness_v0_keyhash", address};
+      return { type: "witness_v0_keyhash", address };
     } else {
       const address = encodeWitnessAddress(versions.hrp, SEGWIT.V0, prog);
-      return {type: "witness_v0_scripthash", address};
+      return { type: "witness_v0_scripthash", address };
     }
   }
   // Taproot (v1): 0x51 0x20 <32-byte>
   if (script.length === SCRIPT_LENGTHS.TAPROOT && script[0] === OP.OP_1 && script[1] === PUSH.BYTES_32) {
     const prog = script.subarray(2);
     const address = encodeWitnessAddress(versions.hrp, SEGWIT.V1, prog);
-    return {type: "witness_v1_taproot", address};
+    return { type: "witness_v1_taproot", address };
   }
-  return {type: "nonstandard"};
+  return { type: "nonstandard" };
 }
 
 function decodePushAt(script: Buffer, index: number): Buffer | undefined {

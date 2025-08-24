@@ -1,10 +1,10 @@
-import {describe, expect, test} from "bun:test";
+import { describe, expect, test } from "bun:test";
 
-import {BitcoinService} from "@/application/services/BitcoinService";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import type {ParsedBlock} from "@/types/blockchain";
+import { BitcoinService } from "@/application/services/BitcoinService";
+import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
+import type { ParsedBlock } from "@/types/blockchain";
 
-import {emitMetric} from "./_metrics";
+import { emitMetric } from "./_metrics";
 
 // Mock RPC that simulates a new block appearing after a short delay
 class MockRpc extends BitcoinRpcClient {
@@ -13,14 +13,14 @@ class MockRpc extends BitcoinRpcClient {
     private block: ParsedBlock;
 
     constructor(startHeight: number, nextHash: string, block: ParsedBlock) {
-        super({url: "http://localhost:0"});
+        super({ url: "http://localhost:0" });
         this.height = startHeight;
         this.nextHash = nextHash;
         this.block = block;
     }
 
     async getBlockchainInfo(): Promise<any> {
-        return {chain: "main"};
+        return { chain: "main" };
     }
 
     async getBlockCount(): Promise<number> {
@@ -44,7 +44,7 @@ class MockRpc extends BitcoinRpcClient {
                             .map((o) =>
                                 ({
                                     value: o.valueBtc,
-                                    scriptPubKey: {address: o.address, type: o.scriptType}
+                                    scriptPubKey: { address: o.address, type: o.scriptType }
                                 })
                             ),
                     })
@@ -66,11 +66,11 @@ describe("Notification latency", () => {
             height: 100,
             time: Math.floor(Date.now() / 1000),
             transactions: [
-                {txid: "t", inputs: [], outputs: [{valueBtc: 0.1, address: "a"}]},
+                { txid: "t", inputs: [], outputs: [ { valueBtc: 0.1, address: "a" } ] },
             ],
         };
         const rpc = new MockRpc(10, "h", block);
-        const svc = new BitcoinService(rpc, {parseRawBlocks: false, pollIntervalMs: 100});
+        const svc = new BitcoinService(rpc, { parseRawBlocks: false, pollIntervalMs: 100 });
         await svc.connect();
 
         const start = Date.now();

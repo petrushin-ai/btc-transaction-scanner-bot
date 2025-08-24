@@ -12,7 +12,7 @@ function formatRow(cols: string[], widths: number[]): string {
 }
 
 function printTable(rows: Array<Record<string, string | number>>): void {
-    const headers = Object.keys(rows[0] ?? {suite: "suite", name: "name", value: 0, unit: "unit"});
+    const headers = Object.keys(rows[0] ?? { suite: "suite", name: "name", value: 0, unit: "unit" });
     const widths = headers
         .map((h) => Math.max(h.length, ...rows.map((r) => String(r[h] ?? "").length)));
     const sep = widths.map((w) => "-".repeat(w)).join("  ");
@@ -44,7 +44,7 @@ function onExit(): void {
                 }
             }).filter(Boolean) as any[];
             if (fromFile.length > 0) {
-                metrics = [...metrics, ...fromFile];
+                metrics = [ ...metrics, ...fromFile ];
                 // De-duplicate by suite+name+ts if present
                 const seen = new Set<string>();
                 metrics = metrics.filter((m) => {
@@ -59,7 +59,7 @@ function onExit(): void {
         // ignore
     }
     if (metrics.length === 0) return;
-    const rows = metrics.map((m) => ({suite: m.suite, name: m.name, value: m.value, unit: m.unit}));
+    const rows = metrics.map((m) => ({ suite: m.suite, name: m.name, value: m.value, unit: m.unit }));
     printTable(rows);
     printed = true;
     // Clean up persisted file so it doesn't accumulate across runs
