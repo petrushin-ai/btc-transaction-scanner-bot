@@ -84,8 +84,3 @@
 - **Reuse state**: cache immutable‑ish structures (`watched` maps) to avoid rebuilding.
 - **Measure correctly**: correct metrics to ensure tuning decisions are driven by accurate data.
 
-## Next candidates (not yet implemented)
-- Preallocate/Reuse temporary maps/sets in `checkTransactions` to eliminate per‑tx allocations. [DONE]
-- Arena or pool for short‑lived strings (addresses/OP_RETURN) if profiling shows string churn.
-- Consider streaming parse for very large blocks to further reduce peak RSS if needed.
-
