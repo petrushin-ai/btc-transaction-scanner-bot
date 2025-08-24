@@ -21,6 +21,10 @@ export class CurrencyService implements CurrencyRateProvider {
   private cacheFilePath: string;
   private cacheValiditySeconds: number;
   private providerName: string;
+  // In-memory hot cache to avoid frequent filesystem reads within validity window
+  private memoryCache: Map<string, { rate: ExchangeRate; cachedAtMs: number }> = new Map();
+  // De-duplicate concurrent fetches for the same pair
+  private inflight: Map<string, Promise<ExchangeRate>> = new Map();
 
   constructor(client: CoinMarketCapClient, opts?: CurrencyServiceOptions) {
     this.client = client;
@@ -38,11 +42,40 @@ export class CurrencyService implements CurrencyRateProvider {
   }
 
   async getRate(base: CurrencyCode, quote: CurrencyCode): Promise<ExchangeRate> {
+    const key = this.getCacheKey(base, quote);
+    // 1) In-memory cache first
+    const mem = this.memoryCache.get(key);
+    if (mem) {
+      const ageSeconds = Math.max(0, Math.floor((Date.now() - mem.cachedAtMs) / 1000));
+      if (ageSeconds <= this.cacheValiditySeconds) {
+        return mem.rate;
+      }
+    }
+
+    // 2) File cache next
     const cached = this.getCachedRate(base, quote);
-    if (cached) return cached;
-    const fresh = await this.client.getExchangeRate(base, quote);
-    this.saveRateToCache(fresh);
-    return fresh;
+    if (cached) {
+      this.memoryCache.set(key, { rate: cached, cachedAtMs: Date.now() });
+      return cached;
+    }
+
+    // 3) De-duplicate concurrent fetches
+    const existing = this.inflight.get(key);
+    if (existing) return existing;
+
+    const fetching = (async () => {
+      const fresh = await this.client.getExchangeRate(base, quote);
+      this.saveRateToCache(fresh);
+      this.memoryCache.set(key, { rate: fresh, cachedAtMs: Date.now() });
+      return fresh;
+    })();
+
+    this.inflight.set(key, fetching);
+    try {
+      return await fetching;
+    } finally {
+      this.inflight.delete(key);
+    }
   }
 
   async getPair(base?: CurrencyCode, quote?: CurrencyCode): Promise<ExchangeRate> {
@@ -109,6 +142,10 @@ export class CurrencyService implements CurrencyRateProvider {
 
   private getPairKey(base: CurrencyCode, quote: CurrencyCode): string {
     return `${base}_${quote}`.toUpperCase();
+  }
+
+  private getCacheKey(base: CurrencyCode, quote: CurrencyCode): string {
+    return `${this.providerName}:${this.getPairKey(base, quote)}`;
   }
 
   private getCachedRate(base: CurrencyCode, quote: CurrencyCode): ExchangeRate | null {
