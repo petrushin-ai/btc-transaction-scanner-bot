@@ -1,8 +1,8 @@
-import {BitcoinService, CurrencyService} from "@/application/services";
-import {loadConfig} from "@/config";
-import {BitcoinRpcClient} from "@/infrastructure/bitcoin";
-import {CoinMarketCapClient} from "@/infrastructure/currency/CoinMarketCapClient";
-import {logger as getLogger} from "@/infrastructure/logger";
+import {BitcoinService, CurrencyService} from "src/application/services";
+import {loadConfig} from "src/config";
+import {BitcoinRpcClient} from "src/infrastructure/bitcoin";
+import {CoinMarketCapClient} from "src/infrastructure/currency/CoinMarketCapClient";
+import {logger as getLogger} from "src/infrastructure/logger";
 
 const logger = getLogger({fileName: "healthcheck"});
 

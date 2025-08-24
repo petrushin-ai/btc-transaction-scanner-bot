@@ -1,11 +1,11 @@
-import { BTC, USD } from "@/application/constants";
-import { CurrencyService } from "@/application/services";
-import { loadConfig } from "@/config";
-import { CoinMarketCapClient } from "@/infrastructure";
-import { logger as getLogger } from "@/infrastructure/logger";
+import {BTC, USD} from "src/application/constants";
+import {CurrencyService} from "src/application/services";
+import {loadConfig} from "src/config";
+import {CoinMarketCapClient} from "src/infrastructure";
+import {logger as getLogger} from "src/infrastructure/logger";
 
 // Use logger that writes NDJSON lines to logs/currency_rates.ndjson
-const logger = getLogger({ fileName: "currency_rates" });
+const logger = getLogger({fileName: "currency_rates"});
 
 async function main() {
   const cfg = loadConfig();

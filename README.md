@@ -1,4 +1,4 @@
-# BTC Transaction-scanner Bot (TypeScript) 
+# BTC Transaction-scanner Bot (TypeScript)
 
 Assesment job - Bun + TypeScript
 
@@ -17,7 +17,7 @@ Assesment job - Bun + TypeScript
 - **Tests**:
   - Run suite: `bun run test`
   - Watch mode: `bun run test:watch`
-- **Examples/utilities**:
+- **Scripts**:
   - Healthcheck: `bun run healthcheck`
   - Currency rates example: `bun run example:rates`
   - Fetch block fixtures: `bun run fixtures:get-blocks`
@@ -97,20 +97,20 @@ If you prefer newline-delimited JSON (NDJSON), pass `{ ndjson: true }` when obta
 Examples:
 
 ```ts
-import { getLogger } from "./src/infrastructure/logger";
-import { getFileStorage } from "./src/infrastructure";
+import {getLogger} from "./src/infrastructure/logger";
+import {getFileStorage} from "./src/infrastructure";
 
 // Default: JSON array files (logs/output.json)
 const logger = getLogger();
-logger.info({ hello: "world" });
+logger.info({hello: "world"});
 
 // Named file with default array behavior -> logs/my-task.json
-const taskLogger = getLogger({ fileName: "my-task" });
-taskLogger.info({ step: 1 });
+const taskLogger = getLogger({fileName: "my-task"});
+taskLogger.info({step: 1});
 
 // NDJSON mode for files (writes to logs/stream.ndjson)
-const ndjsonLogger = getLogger({ fileName: "stream", ndjson: true });
-ndjsonLogger.info({ event: "start" });
+const ndjsonLogger = getLogger({fileName: "stream", ndjson: true});
+ndjsonLogger.info({event: "start"});
 ```
 
 ### File storage abstraction
@@ -124,7 +124,7 @@ All filesystem interactions are routed through `FileStorageService` to keep IO c
 You can access the default implementation via:
 
 ```ts
-import { getFileStorage } from "./src/infrastructure";
+import {getFileStorage} from "./src/infrastructure";
 
 const storage = getFileStorage();
 if (storage.fileExists("addresses.json")) {
@@ -140,13 +140,14 @@ if (storage.fileExists("addresses.json")) {
   - Cache TTL for currency pairs; fresh network requests are skipped while cached entries are valid.
 
 Notes:
+
 - Currency rates are cached per provider/pair at `./cache/currency_rates.json`.
 - Cache keys are namespaced by provider (e.g., `coinmarketcap`) and pair (e.g., `BTC_USDT`).
 
 Examples:
 
 ```bash
-cp .env.example .env
+cp .env.scripts .env
 echo "APP_ENV=development" >> .env
 echo "LOG_PRETTY=true" >> .env
 echo "LOG_LEVEL=debug" >> .env
@@ -177,6 +178,7 @@ docker run --rm --env-file .env btc-transaction-scanner-bot
   { "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX", "label": "wallet-2" }
 ]
 ```
+
 ```
 
 ## Testing
@@ -229,6 +231,7 @@ bun test --reporter=junit --reporter-outfile=bun.xml
 ```
 
 Bun test docs: https://bun.com/docs/cli/test
+
 ```
 
 ### Docker Compose (recommended)
@@ -265,13 +268,14 @@ Compose proxies these env vars from `.env`:
 - `COINMARKETCAP_BASE_URL`
 - `API_KEY_COINMARKETCAP`
 - `PARSE_RAW_BLOCKS`
-  
+
 ## Providers
 
 - Bitcoin RPC provider: QuickNode — see their developer center at `https://www.quicknode.com/docs/developer-center`. Any Bitcoin Core–compatible RPC endpoint is supported; set `BTC_RPC_API_URL` accordingly.
 - Currency rates: CoinMarketCap API — documentation at `https://coinmarketcap.com/api/documentation/v1/`. Provide `API_KEY_COINMARKETCAP` to enable USD equity.
 
 Notes on rates caching:
+
 - Rates are cached per provider/pair under `./cache/currency_rates.json` and controlled by `CUR_CACHE_VALIDITY_PERIOD`.
 - A single BTC→USD rate is fetched per processed block and reused for all activities in that block.
 
@@ -323,6 +327,7 @@ The bot emits structured JSON events to stdout (and files). Production mode hide
 ```
 
 Notes:
+
 - When both incoming and outgoing operations exist for the same address within a tx, the bot emits the net difference as a single event with `direction` set accordingly and `valueBtc` equal to the absolute net.
 - Outgoing/net detection requires `RESOLVE_INPUT_ADDRESSES=true`.
 
@@ -337,6 +342,7 @@ Notes:
   - `src/infrastructure/bitcoin/raw/BlockParser.ts` – parses block header and transactions
 
 Supported script types:
+
 - `pubkeyhash` (P2PKH)
 - `scripthash` (P2SH)
 - `witness_v0_keyhash` (P2WPKH)
@@ -386,7 +392,7 @@ Network is detected from `getblockchaininfo.chain` and passed into address encod
 ## Quick start (recap)
 
 ```bash
-cp .env.example .env || true
+cp .env.scripts .env || true
 echo "APP_ENV=development" >> .env
 echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
 # Optional flags:

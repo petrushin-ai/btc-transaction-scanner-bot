@@ -1,7 +1,7 @@
-import { BitcoinService } from "@/application/services/BitcoinService";
-import { loadConfig } from "@/config";
-import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
-import { logger } from "@/infrastructure/logger";
+import {BitcoinService} from "src/application/services/BitcoinService";
+import {loadConfig} from "src/config";
+import {BitcoinRpcClient} from "src/infrastructure/bitcoin";
+import {logger} from "src/infrastructure/logger";
 
 async function main() {
   const cfg = loadConfig();
@@ -24,7 +24,7 @@ async function main() {
   });
 }
 
-// Do not auto-run in production; this is a one-off example
+// Do not auto-run in production; this is a one-off scripts
 if (import.meta.main) {
   main().catch((err) => {
     const message = err instanceof Error ? err.message : String(err);
