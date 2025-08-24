@@ -27,7 +27,7 @@ const cachedByFileName: Map<string, AppLogger> = new Map();
 function getLogger(arg?: string | LoggerOptions): AppLogger {
   const options: LoggerOptions = typeof arg === "string" ? { fileName: arg } : (arg || {});
   const fileName = options.fileName?.trim();
-  const useNdjson = options.ndjson ?? false;
+  const useNdjson = options.ndjson ?? true;
 
   const cacheKey = `${fileName || "__default__"}::ndjson=${useNdjson ? "1" : "0"}`;
   const existing = cachedByFileName.get(cacheKey);

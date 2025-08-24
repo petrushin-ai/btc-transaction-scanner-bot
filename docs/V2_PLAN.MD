@@ -25,13 +25,12 @@
 
 ### Currency Rates and USD Computation
 
-- [ ] Cache strategy: Maintain in-memory hot cache and file cache; add TTL jitter, negative caching on 4xx/5xx, and circuit breaker on provider errors.
-- [ ] Precision: Use decimal math (e.g., big.js) for rate × amount, with consistent rounding policy and currency formatting.
+- [x] Cache strategy: Maintain in-memory hot cache and file cache; add TTL jitter, negative caching on 4xx/5xx, and circuit breaker on provider errors.
+- [x] Precision: Use decimal math (e.g., big.js) for rate × amount, with consistent rounding policy and currency formatting.
 
 ### Observability and Operability
 
-- [ ] Logging strategy: Prefer NDJSON for files by default with logrotate-friendly outputs; keep pretty console in dev.
-- [ ] Tracing: Add spans around block fetch, parse, address match, USD enrichment, and emit.
+- [X] Logging strategy: Prefer NDJSON for files by default with logrotate-friendly outputs; keep pretty console in dev.
 
 ### Configuration improvements
 

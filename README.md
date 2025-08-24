@@ -175,15 +175,13 @@ Variables (with defaults and purpose):
 - `LOG_LEVEL` (default: `debug` in `development`, otherwise `info`)
   - Log verbosity level (e.g., `trace`, `debug`, `info`, `warn`, `error`).
 - `LOG_PRETTY` (`true|false`, default: `true` in `development`, otherwise `false`)
-  - Pretty-print logs for human readability.
+  - Pretty-print logs for human readability (stdout only). File logs remain machine-friendly.
 - `LOG_SERVICE_NAME` (default: `btc-transaction-scanner-bot`)
   - Service name injected into logs.
 
 #### File output format
 
-By default, file logs are written as a valid JSON array where every log event is appended as a new array element. This keeps `logs/output.json` (and `logs/<custom>.json`) always valid JSON that can be parsed directly. In NDJSON mode, files use the `.ndjson` extension (e.g., `logs/output.ndjson`, `logs/<custom>.ndjson`).
-
-If you prefer newline-delimited JSON (NDJSON), pass `{ ndjson: true }` when obtaining a logger.
+By default, file logs are written as NDJSON (newline-delimited JSON) which is logrotate-friendly and easy to stream. Files use the `.ndjson` extension (e.g., `logs/output.ndjson`, `logs/<custom>.ndjson`). If you prefer a single JSON array file for easy `JSON.parse`, pass `{ ndjson: false }` when obtaining a logger; files will use the `.json` extension and remain valid arrays at all times.
 
 Examples:
 
@@ -191,17 +189,17 @@ Examples:
 import {getLogger} from "./src/infrastructure/logger";
 import {getFileStorage} from "./src/infrastructure";
 
-// Default: JSON array files (logs/output.json)
+// Default: NDJSON files (logs/output.ndjson)
 const logger = getLogger();
 logger.info({hello: "world"});
 
-// Named file with default array behavior -> logs/my-task.json
+// Named file with default NDJSON behavior -> logs/my-task.ndjson
 const taskLogger = getLogger({fileName: "my-task"});
 taskLogger.info({step: 1});
 
-// NDJSON mode for files (writes to logs/stream.ndjson)
-const ndjsonLogger = getLogger({fileName: "stream", ndjson: true});
-ndjsonLogger.info({event: "start"});
+// JSON array mode for files (writes to logs/stream.json)
+const arrayLogger = getLogger({fileName: "stream", ndjson: false});
+arrayLogger.info({event: "start"});
 ```
 
 ### File storage abstraction
@@ -592,7 +590,7 @@ export function registerWebhook(events: EventService) {
 ## Operational notes
 
 - Production mode suppresses debug-level noisy logs (poll/summary/OP_RETURN) on stdout; `transaction.activity` stays at info.
-- File logs are always written and remain valid JSON arrays by default. NDJSON is available.
+- File logs are always written and default to NDJSON. JSON array mode is available when needed.
 - For net/outgoing detection, enable `RESOLVE_INPUT_ADDRESSES=true`.
 
 ## Quick start (recap)
