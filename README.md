@@ -241,7 +241,7 @@ Variables (with defaults and purpose):
   - RPC username if node requires basic auth.
 - `BITCOIN_RPC_PASSWORD` (optional)
   - RPC password if node requires basic auth.
-- `BITCOIN_POLL_INTERVAL_MS` (default: `1000`)
+- `BTC_POLL_INTERVAL_MS` (default: `1000`)
   - Interval in milliseconds between checks for a new block. Lower values reduce detection latency but increase RPC load.
 - `MAX_EVENT_QUEUE_SIZE` (default: `2000`)
   - Backpressure knob for the internal event bus. When the pending events reach this size, publishers will wait until the queue drains.
@@ -444,7 +444,7 @@ Compose proxies these env vars from `.env`:
 
 - `APP_ENV`
 - `BTC_RPC_API_URL`
-- `BITCOIN_POLL_INTERVAL_MS`
+- `BTC_POLL_INTERVAL_MS`
 - `MAX_EVENT_QUEUE_SIZE`
 - `RESOLVE_INPUT_ADDRESSES`
 - `CUR_CACHE_VALIDITY_PERIOD`

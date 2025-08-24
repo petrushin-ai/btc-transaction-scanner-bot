@@ -35,6 +35,7 @@ async function main() {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
     parseRawBlocks: cfg.parseRawBlocks,
+    network: cfg.network as any,
     flagsService: flags,
   } );
   const events = new EventService( { maxQueueSize: cfg.maxEventQueueSize } );
@@ -86,16 +87,7 @@ async function main() {
         const raw = storage.readFile( path, "utf-8" );
         const json = JSON.parse( raw );
         if ( !Array.isArray( json ) ) return;
-        const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
-        let net: any = undefined;
-        if (
-          networkGuess === "mainnet"
-          || networkGuess === "testnet"
-          || networkGuess === "signet"
-          || networkGuess === "regtest"
-        ) {
-          net = networkGuess as any;
-        }
+        const net: any = cfg.network as any;
         const items = json
           .filter( (x: any) => typeof x?.address === "string" )
           .map( (x: any) => ({ address: x.address, label: x.label }) );

@@ -25,6 +25,7 @@ export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
   resolveInputAddresses?: boolean;
   parseRawBlocks?: boolean;
+  network?: Raw.Network;
   flagsService?: FeatureFlagsService;
 };
 
@@ -56,6 +57,7 @@ export class BitcoinService implements BlockchainService {
     this.flagsService = opts?.flagsService;
     this.verbose = false;
     this.log = logger( "bitcoin_service" );
+    if ( opts?.network ) this.network = opts.network;
   }
 
   /**
@@ -87,13 +89,8 @@ export class BitcoinService implements BlockchainService {
   }
 
   async connect(): Promise<void> {
-    const info = await this.rpc.getBlockchainInfo();
-    // Map chain to network HRP
-    const chain = String( (info as any).chain || "main" );
-    if ( chain === "main" ) this.network = "mainnet";
-    else if ( chain === "test" ) this.network = "testnet";
-    else if ( chain === "signet" ) this.network = "signet";
-    else this.network = "regtest";
+    // Ping RPC to ensure connectivity
+    await this.rpc.getBlockchainInfo();
   }
 
   async ping(): Promise<HealthResult> {
