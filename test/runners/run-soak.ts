@@ -72,7 +72,7 @@ function makeSoakBlocks(tps: number, seconds: number, watched: WatchedAddress[])
 
 export async function runSoak(secondsInput?: number) {
   const tps = 10;
-  const durationSeconds = Number(secondsInput ?? process.env.SOAK_SECONDS ?? 60);
+  const durationSeconds = Number( secondsInput ?? process.env.SOAK_SECONDS ?? 60 );
   const watched: WatchedAddress[] = Array.from( { length: 1000 }, (_, i) => ({ address: `addr_${ i }` }) );
 
   const blocks = makeSoakBlocks( tps, durationSeconds, watched );
@@ -102,9 +102,11 @@ export async function runSoak(secondsInput?: number) {
   const totalTx = blocks.reduce( (a, b) => a + b.transactions.length, 0 );
   const totalSeconds = (t1 - t0) / 1000;
   const tpsMeasured = totalTx / totalSeconds;
-  const p95Latency = latencies.slice().sort( (a, b) => a - b )[Math.floor( 0.95 * (latencies.length - 1) )];
+  const p95Latency = latencies
+    .slice()
+    .sort( (a, b) => a - b )[Math.floor( 0.95 * (latencies.length - 1) )];
 
-  const out = {
+  return {
     suite: "proc-soak",
     seconds: durationSeconds,
     tpsTarget: tps,
@@ -114,15 +116,15 @@ export async function runSoak(secondsInput?: number) {
     rssDeltaMb: Math.round( (maxMb - idleMb) * 100 ) / 100,
     p95BlockLatencyMs: Math.round( p95Latency ),
   };
-  return out;
 }
-if (import.meta.main) {
-  runSoak().then((data) => {
-    console.log(JSON.stringify(data));
-  }).catch((err) => {
-    console.error(String((err as any)?.message || err));
-    process.exit(1);
-  });
+
+if ( import.meta.main ) {
+  runSoak().then( (data) => {
+    console.log( JSON.stringify( data ) );
+  } ).catch( (err) => {
+    console.error( String( (err as any)?.message || err ) );
+    process.exit( 1 );
+  } );
 }
 
 

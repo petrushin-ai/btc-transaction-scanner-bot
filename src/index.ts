@@ -18,11 +18,6 @@ import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 
 async function main() {
   const cfg = loadConfig();
-  const env = (process.env.APP_ENV || process.env.NODE_ENV || "development").toString().trim();
-  if ((process.env.SMOKE_TEST || "").toString().trim().toLowerCase() === "true") {
-    logger.info({ type: "smoke", msg: "SMOKE_TEST mode: skipping external checks and exiting", env });
-    return;
-  }
   const rpc = new BitcoinRpcClient( { url: cfg.bitcoinRpcUrl } );
   const flags = new FeatureFlagsService(
     {

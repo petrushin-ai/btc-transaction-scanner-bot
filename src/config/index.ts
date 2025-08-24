@@ -63,9 +63,13 @@ export function loadConfig(): AppConfig {
       worker: { id: "worker-1", members: [ "worker-1" ] },
       watch: [],
       watchAddressesFile: `${ cwd }/addresses.json`,
-      environment: (process.env.APP_ENV || process.env.NODE_ENV || "production").toString().trim(),
-      serviceName: (process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot").toString().trim(),
-      logLevel: (process.env.LOG_LEVEL || "info").toString().trim(),
+      environment: (process.env.APP_ENV || process.env.NODE_ENV || "production")
+        .toString().trim(),
+      serviceName: (
+        process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot")
+        .toString().trim(),
+      logLevel: (process.env.LOG_LEVEL || "info")
+        .toString().trim(),
       logPretty: false,
       coinMarketCapApiKey: "",
       sinks: {
@@ -159,7 +163,16 @@ export function loadConfig(): AppConfig {
     .filter( Boolean );
   const sinks = {
     enabled,
-    stdout: { pretty: (((env.SINK_STDOUT_PRETTY ?? (logPretty ? "true" : "false")).toString().toLowerCase().trim() === "true")) },
+    stdout: {
+      pretty: (
+        (
+          (
+            env.SINK_STDOUT_PRETTY
+            ?? (logPretty ? "true" : "false"
+            )
+          ).toString().toLowerCase().trim() === "true")
+      )
+    },
     file: env.SINK_FILE_PATH ? { path: env.SINK_FILE_PATH.trim() } : undefined,
     webhook: env.SINK_WEBHOOK_URL ? {
       url: env.SINK_WEBHOOK_URL.trim(),
@@ -170,7 +183,9 @@ export function loadConfig(): AppConfig {
           throw new Error( "Environment validation failed: - SINK_WEBHOOK_HEADERS: must be valid JSON. Tip: e.g. {\"Authorization\":\"Bearer ...\"}" );
         }
       })() : undefined,
-      maxRetries: env.SINK_WEBHOOK_MAX_RETRIES ? Number( env.SINK_WEBHOOK_MAX_RETRIES.toString().trim() ) : undefined,
+      maxRetries: env.SINK_WEBHOOK_MAX_RETRIES
+        ? Number( env.SINK_WEBHOOK_MAX_RETRIES.toString().trim() )
+        : undefined,
     } : undefined,
     kafka: env.SINK_KAFKA_BROKERS && env.SINK_KAFKA_TOPIC ? {
       brokers: env.SINK_KAFKA_BROKERS.split( "," ).map( (x) => x.trim() ).filter( Boolean ),
@@ -194,7 +209,12 @@ export function loadConfig(): AppConfig {
       const networkGuess = (env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
       // Guess from RPC URL if no explicit network provided
       let net: any = undefined;
-      if ( networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest" ) {
+      if (
+        networkGuess === "mainnet"
+        || networkGuess === "testnet"
+        || networkGuess === "signet"
+        || networkGuess === "regtest"
+      ) {
         net = networkGuess as any;
       }
       const items = json.filter( (x) => typeof x?.address === "string" ).map( (x) => ({
@@ -206,7 +226,12 @@ export function loadConfig(): AppConfig {
   } catch {
     const networkGuess = (env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
     let net: any = undefined;
-    if ( networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest" ) {
+    if (
+      networkGuess === "mainnet"
+      || networkGuess === "testnet"
+      || networkGuess === "signet"
+      || networkGuess === "regtest"
+    ) {
       net = networkGuess as any;
     }
     watch = normalizeWatchedAddresses( parseWatchAddresses( env.WATCH_ADDRESSES ), net );
