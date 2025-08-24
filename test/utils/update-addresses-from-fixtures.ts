@@ -1,3 +1,4 @@
+import {spawnSync} from "child_process";
 import fs from "fs";
 import path from "path";
 
@@ -85,10 +86,20 @@ function upsertAddresses(
 export async function updateAddressesFromLatestFixture(options?: { maxPerCategory?: number; addressesFile?: string }) {
   const cwd = process.cwd();
   const fixturesDir = path.join(cwd, "test", "fixtures");
-  const pairs = listFixturePairs(fixturesDir);
+  let pairs = listFixturePairs(fixturesDir);
   if (pairs.length === 0) {
-    console.error("No fixture pairs found in test/fixtures");
-    process.exit(1);
+    console.warn("No fixture pairs found in test/fixtures. Attempting to fetch latest blocks...");
+    const result = spawnSync("bun", ["test/utils/fetch-block-fixtures.ts"], {stdio: "inherit"});
+    if ((result.status ?? 1) !== 0) {
+      console.error("Failed to fetch block fixtures. Cannot update addresses.json");
+      process.exit(result.status ?? 1);
+    }
+    // Re-scan after successful fetch
+    pairs = listFixturePairs(fixturesDir);
+    if (pairs.length === 0) {
+      console.error("Still no fixture pairs found after fetch attempt");
+      process.exit(1);
+    }
   }
 
   const latest = pairs[0];
@@ -166,10 +177,12 @@ async function main() {
   await updateAddressesFromLatestFixture();
 }
 
-main().catch((err) => {
-  const message = err instanceof Error ? err.message : String(err);
-  console.error("update-addresses-from-fixtures failed:", message);
-  process.exit(1);
-});
+if ((import.meta as any).main) {
+  main().catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("update-addresses-from-fixtures failed:", message);
+    process.exit(1);
+  });
+}
 
 

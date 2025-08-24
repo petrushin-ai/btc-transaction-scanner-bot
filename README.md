@@ -35,6 +35,12 @@ echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
 ]
 ```
 
+Optional: generate `addresses.json` from fixtures
+
+```bash
+bun run fixtures:update-addresses
+```
+
 4) Start locally with Bun
 
 ```bash
