@@ -84,3 +84,17 @@
 - **Reuse state**: cache immutable‑ish structures (`watched` maps) to avoid rebuilding.
 - **Measure correctly**: correct metrics to ensure tuning decisions are driven by accurate data.
 
+## Backpressure and retries (event pipeline)
+
+The event-driven pipeline introduces an internal bus with:
+
+- Queue backpressure via `MAX_EVENT_QUEUE_SIZE` (default 2000).
+- Per-handler concurrency caps.
+- Retry policies with configurable backoff.
+
+Tuning guide:
+
+- Increase `MAX_EVENT_QUEUE_SIZE` to tolerate short spikes of events without stalling the publisher.
+- Lower it to detect overload sooner and apply natural backpressure.
+- Use small per-subscription `concurrency` for CPU-heavy steps; increase it for IO-bound work.
+

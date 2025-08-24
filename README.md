@@ -70,6 +70,8 @@ Variables (with defaults and purpose):
   - RPC password if node requires basic auth.
 - `BITCOIN_POLL_INTERVAL_MS` (default: `1000`)
   - Interval in milliseconds between checks for a new block. Lower values reduce detection latency but increase RPC load.
+- `MAX_EVENT_QUEUE_SIZE` (default: `2000`)
+  - Backpressure knob for the internal event bus. When the pending events reach this size, publishers will wait until the queue drains.
 - `RESOLVE_INPUT_ADDRESSES` (`true|false`, default: `false`)
   - When `true`, resolves input addresses by fetching previous transactions. Enables detection of outgoing ("out") activities but increases RPC calls.
 - `WATCH_ADDRESSES_FILE` (default: `./addresses.json`)
@@ -263,6 +265,7 @@ Compose proxies these env vars from `.env`:
 - `APP_ENV`
 - `BTC_RPC_API_URL`
 - `BITCOIN_POLL_INTERVAL_MS`
+- `MAX_EVENT_QUEUE_SIZE`
 - `RESOLVE_INPUT_ADDRESSES`
 - `CUR_CACHE_VALIDITY_PERIOD`
 - `COINMARKETCAP_BASE_URL`
@@ -378,10 +381,55 @@ Network is detected from `getblockchaininfo.chain` and passed into address encod
 
 - Clean layering:
   - `src/types` – domain types and interfaces
-  - `src/application` – services (`BitcoinService`, `CurrencyService`, `HealthCheckService`) and helpers
+  - `src/application` – services (`BitcoinService`, `CurrencyService`, `EventService`, `HealthCheckService`) and helpers; `registerEventPipeline` wires subscriptions
   - `src/infrastructure` – RPC client, logger, storage, currency client, raw parser
   - `src/config` – env loading and validation
-- Flow per block: load config → await new block → parse (raw or verbose) → match watched addresses → annotate with USD → emit JSON notifications.
+- Flow per block (event‑driven): load config → await new block → publish `BlockDetected` → parse (raw or verbose) → publish `BlockParsed` → match watched addresses + annotate with USD → publish `AddressActivityFound` per match → emit `NotificationEmitted`.
+
+## Event bus and pipeline
+
+The bot is orchestrated by a lightweight in‑memory event bus (`EventService`) and an explicit pipeline (`registerEventPipeline` in `src/application/services/Pipeline.ts`). This makes the flow composable, testable, and easy to extend with new subscribers.
+
+- **Event types** (`src/types/events.ts`):
+  - `BlockDetected` → new block header/hash discovered
+  - `BlockParsed` → full block parsed (raw or verbose)
+  - `AddressActivityFound` → a watched address had activity in a tx (already netted and USD‑annotated)
+  - `NotificationEmitted` → a downstream emitter logged/sent a notification
+
+- **Built‑in pipeline** (`registerEventPipeline`):
+  - On `BlockDetected`: parse block → publish `BlockParsed`
+  - On `BlockParsed`: compute activities, log block summary/OP_RETURN, publish `AddressActivityFound` for each activity
+  - On `AddressActivityFound`: log activity and publish `NotificationEmitted`
+  - On `NotificationEmitted`: placeholder for audits/metrics
+
+- **Backpressure/concurrency/retries**:
+  - Queue size: `MAX_EVENT_QUEUE_SIZE` (default: `2000`) – publishers wait when full
+  - Per‑subscription `concurrency` controls parallel handler executions
+  - Optional `retry` with backoff per subscription
+
+### Extending the pipeline
+
+Add new subscribers without touching core services. Example: send a webhook on every emitted notification.
+
+```ts
+import type { EventService } from "./src/application/services";
+
+export function registerWebhook(events: EventService) {
+  events.subscribe({
+    event: "NotificationEmitted",
+    name: "webhook-sink",
+    concurrency: 4,
+    retry: { maxRetries: 3, backoffMs: (n) => 250 * n },
+    handler: async (ev) => {
+      await fetch("https://example.com/hook", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(ev),
+      });
+    },
+  });
+}
+```
 
 ## Operational notes
 

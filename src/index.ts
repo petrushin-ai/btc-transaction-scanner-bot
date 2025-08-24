@@ -1,7 +1,6 @@
 import { BTC, USD } from "@/application/constants";
-import { logActivities, logBlockSummary, logOpReturnData } from "@/application/helpers/bitcoin";
-import { getUsdRate, mapActivitiesWithUsd } from "@/application/helpers/currency";
-import { BitcoinService, CurrencyService, HealthCheckService } from "@/application/services";
+import { BitcoinService, CurrencyService, EventService, HealthCheckService } from "@/application/services";
+import { registerEventPipeline } from "@/application/services/Pipeline";
 import { loadConfig } from "@/config";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
 import { CoinMarketCapClient } from "@/infrastructure/currency/CoinMarketCapClient";
@@ -19,6 +18,7 @@ async function main() {
     resolveInputAddresses: cfg.resolveInputAddresses,
     parseRawBlocks: cfg.parseRawBlocks,
   });
+  const events = new EventService({ maxQueueSize: cfg.maxEventQueueSize });
   const cmcClient = new CoinMarketCapClient({
     apiKey: cfg.coinMarketCapApiKey,
   });
@@ -31,29 +31,19 @@ async function main() {
   const health = new HealthCheckService();
   await health.runStartupChecks(btc, currency);
 
+  // Register event pipeline (subscriptions & handlers)
+  registerEventPipeline(events, { btc, currency }, cfg);
+
   let lastHeight: number | undefined = undefined;
   for (;;) {
     const block = await btc.awaitNewBlock(lastHeight);
     lastHeight = block.height;
-
-    // Fetch rate once per block for consistency and to reduce API calls
-    const rate = await getUsdRate(currency);
-
-    const activities = mapActivitiesWithUsd(
-      btc.checkTransactions(block, cfg.watch),
-      rate,
-    );
-
-    // Emit a block summary only if verbose
-    // Summary logs will be emitted at debug level and gated by logger config
-    logBlockSummary(block, activities.length);
-
-    // Emit per-activity notifications (always)
-    logActivities(block, activities);
-
-    // Emit OP_RETURN data only if verbose
-    // OP_RETURN logs at debug level; logger config controls visibility
-    logOpReturnData(block);
+    await events.publish({
+      type: "BlockDetected",
+      timestamp: new Date().toISOString(),
+      height: block.height,
+      hash: block.hash,
+    });
   }
 }
 

@@ -11,6 +11,7 @@ export type AppConfig = {
   pollIntervalMs: number;
   resolveInputAddresses: boolean;
   parseRawBlocks: boolean;
+  maxEventQueueSize: number;
   watch: { address: string; label?: string }[];
   // logger
   environment: string;
@@ -52,6 +53,12 @@ export function loadConfig(): AppConfig {
           allOf: [
             {format: "uri"},
             {pattern: "^https?://"},
+          ],
+        },
+        MAX_EVENT_QUEUE_SIZE: {
+          anyOf: [
+            {type: "integer", minimum: 1},
+            {type: "string", pattern: "^[0-9]+$"},
           ],
         },
         BITCOIN_POLL_INTERVAL_MS: {
@@ -113,6 +120,7 @@ export function loadConfig(): AppConfig {
   ).trim();
   const bitcoinRpcUrl = (process.env.BTC_RPC_API_URL as string).trim();
   const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
+  const maxEventQueueSize = Number((process.env.MAX_EVENT_QUEUE_SIZE || "2000").toString().trim());
   const resolveInputAddresses = (
     process.env.RESOLVE_INPUT_ADDRESSES ?? ""
   ).toString().toLowerCase().trim() === "true";
@@ -147,6 +155,7 @@ export function loadConfig(): AppConfig {
     pollIntervalMs,
     resolveInputAddresses,
     parseRawBlocks,
+    maxEventQueueSize,
     watch,
     environment,
     serviceName,
