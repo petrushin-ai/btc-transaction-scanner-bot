@@ -3,7 +3,7 @@ import { getUsdRate, mapActivitiesWithUsd } from "@/application/helpers/currency
 import type { AppConfig } from "@/config";
 import { FileSink, KafkaSink, NatsSink, StdoutSink, WebhookSink } from "@/infrastructure/sinks";
 import type { NotificationSink } from "@/infrastructure/sinks";
-import type { AddressActivity, ParsedBlock } from "@/types/blockchain";
+import type { AddressActivity, ParsedBlock, WatchedAddress } from "@/types/blockchain";
 import type { AddressActivityFoundEvent, NotificationEmittedEvent } from "@/types/events";
 
 import type { BitcoinService, CurrencyService, EventService } from ".";
@@ -13,7 +13,7 @@ export function registerEventPipeline(
   events: EventService,
   services: { btc: BitcoinService; currency: CurrencyService },
   cfg: AppConfig,
-): void {
+): WatchedAddress[] {
   const { btc, currency } = services;
   const workers = new WorkersService(cfg.worker.id, cfg.worker.members);
 
@@ -128,6 +128,9 @@ export function registerEventPipeline(
       // no-op; logger subscription happens in index via global logger config
     },
   });
+
+  // Expose the live reference so callers can mutate it in-place for hot reloads
+  return filteredWatch;
 }
 
 

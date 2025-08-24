@@ -15,6 +15,8 @@ export type AppConfig = {
   // horizontal workers
   worker: { id: string; members: string[] };
   watch: { address: string; label?: string }[];
+  // path to a watchlist file (if available)
+  watchAddressesFile?: string;
   // logger
   environment: string;
   serviceName: string;
@@ -191,6 +193,7 @@ export function loadConfig(): AppConfig {
     maxEventQueueSize,
     worker: { id: workerId, members: workerMembers },
     watch,
+    watchAddressesFile: addressesFile,
     environment,
     serviceName,
     logLevel,
