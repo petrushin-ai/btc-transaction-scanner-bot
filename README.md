@@ -2,6 +2,43 @@
 
 Assesment job - Bun + TypeScript
 
+## Essential: scripts and options
+
+- **Local dev (watch mode)**: `bun run dev` — runs `bun --watch src/index.ts`
+- **Run once (local)**: `bun run start` — runs `bun src/index.ts`
+- **Docker build (image)**: `bun run docker:build`
+- **Docker Compose (prod-like)**:
+  - Up: `bun run docker:up`
+  - Logs: `bun run docker:logs`
+  - Down: `bun run docker:down`
+- **Docker Compose (dev, live reload)**:
+  - Up: `bun run docker:dev:up`
+  - Down: `bun run docker:dev:down`
+- **Tests**:
+  - Run suite: `bun run test`
+  - Watch mode: `bun run test:watch`
+- **Examples/utilities**:
+  - Healthcheck: `bun run healthcheck`
+  - Currency rates example: `bun run example:rates`
+  - Fetch block fixtures: `bun run fixtures:get-blocks`
+  - Update watched addresses from fixtures: `bun run fixtures:update-addresses`
+  - Compare raw vs verbose data: `bun run test:compare`
+- **Linting**:
+  - Check: `bun run lint`
+  - Fix: `bun run lint:fix`
+
+Minimal .env to get started (see detailed list below):
+
+```bash
+APP_ENV=development
+BTC_RPC_API_URL=http://localhost:8332
+# Currency (optional, enables USD):
+API_KEY_COINMARKETCAP=your_key
+# Optional features
+# PARSE_RAW_BLOCKS=true
+# RESOLVE_INPUT_ADDRESSES=true
+```
+
 ## Prerequisites
 
 - Bun runtime (`bun --version`) – optional for local run
@@ -99,8 +136,6 @@ if (storage.fileExists("addresses.json")) {
 
 - `API_KEY_COINMARKETCAP` (required)
   - CoinMarketCap API key used by the currency provider client.
-- `COINMARKETCAP_BASE_URL` (default: `https://pro-api.coinmarketcap.com`)
-  - Base URL for CoinMarketCap API.
 - `CUR_CACHE_VALIDITY_PERIOD` (seconds, default: `3600`)
   - Cache TTL for currency pairs; fresh network requests are skipped while cached entries are valid.
 

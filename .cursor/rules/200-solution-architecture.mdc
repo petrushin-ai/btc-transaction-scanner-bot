@@ -4,100 +4,76 @@ alwaysApply: false
 ---
 # Architecture
 
-## Tech stack
+This rule summarizes the implemented architecture and points to single sources of truth to avoid duplication. For operational commands, envs, and deep dives, see the linked docs.
 
-- Bun 1.1+ runtime, TypeScript (ESNext, strict), ESM-only modules
-- Dockerized runtime using `oven/bun:1.1` base image
-- Package manager/runtime: Bun (`bun.lock`, `bun run`)
-- Logging: Pino v9 with optional `pino-pretty` in development
-- Configuration: `dotenv` + `env-schema` (Ajv v8 + `ajv-formats`) for typed/validated env
-- Bitcoin node integration: JSON-RPC (Bitcoin Core/compatible) via `BitcoinRpcClient`
-- Currency rates: CoinMarketCap client with file-based cache (`cache/currency_rates.json`)
+## Tech stack (concise)
 
-## Folder structure (clean architecture)
+- Bun 1.1+ runtime, TypeScript (strict, ESM)
+- Docker image based on `oven/bun:1.1`
+- Logging via Pino with pretty option in development
+- Env loading and validation with `.env*` files
+- Bitcoin Core–compatible JSON‑RPC client
+- Currency rates via CoinMarketCap with file cache
 
-- `src/types` – Pure types models and ports
-  - `blockchain.ts` – `BlockchainService` interface, types types
-- `src/application` – Use cases and service implementations that orchestrate infrastructure
-  - `services/BitcoinService.ts` – Implements `BlockchainService` on top of RPC client
-- `src/infrastructure` – Adapters and external integrations
-  - `bitcoin/BitcoinRpcClient.ts` – JSON-RPC adapter for Bitcoin Core/compatible nodes
-  - `logger/Logger.ts` – Pino-based structured logger (JSON stdout)
-- `src/config` – Configuration loading (env-based)
-  - `index.ts` – loads RPC URL/credentials, polling, watched addresses
-- `src/example` – Small runnable examples
-  - `runOnce.ts` – one-shot flow: connect → await block → parse → check
+Details: see Architecture in `README.md`.
 
-## Services
+## Clean layering
 
-1. Core service
-- Initialization and dependency wiring (config → rpc → services)
-- Cross-service orchestration (future: polling loop, notification pipeline)
+- `src/types` – domain types and interfaces
+- `src/application` – orchestration services (`BitcoinService`, `CurrencyService`, `HealthCheckService`) and helpers
+- `src/infrastructure` – adapters (Bitcoin RPC, logger, storage, currency client, raw parser)
+- `src/config` – env loading and schema
+- `src/example` – runnable examples
 
-2. Blockchain service (Bitcoin)
-- Connects to Bitcoin node via JSON-RPC
-- Waits for the next block (polling `getblockcount` → `getblockhash`)
-- Parses block with verbosity 2 (`getblock`) and optional input resolution via `getrawtransaction`
-- Checks transactions against configured addresses, outputs per-address activities (in/out, value BTC)
+Refer to the Architecture section in `README.md` for an expanded overview.
 
-3. Currency service (planned)
-- Fetch BTC→USDT and USDT→USD rates (source TBD per constraints)
-- Provide conversion utilities to compute USD equity for amounts
+## Key services and behavior
 
-4. Logger
-- Implemented via Pino at `src/infrastructure/logger/Logger.ts`
-- Outputs structured JSON to stdout (production default)
-- Optional pretty text output for local debugging (`LOG_PRETTY=true`)
-- Env-driven config: `LOG_LEVEL`, `LOG_PRETTY`, `LOG_SERVICE_NAME`, `APP_ENV`/`NODE_ENV`
-- Usage: `const logger = getLogger(); logger.info({ ... })`
-- Transaction notifications: emit JSON events containing at minimum
-  - `type`: e.g., `"block.activities"` or `"transaction.activity"`
-  - `txid`, `address`, `label`, `direction` (in|out), `valueBtc`
-  - `valueUsd` (when currency service is available)
-  - `blockHeight`, `blockHash`
+- Bitcoin service: connects to node, awaits new blocks, parses (raw path gated by `PARSE_RAW_BLOCKS`), matches watched addresses, optionally resolves inputs when `RESOLVE_INPUT_ADDRESSES=true`.
+- Currency service: fetches and caches BTC→USD using CoinMarketCap; applied once per block.
+- Logger: structured JSON to stdout and files; JSON‑array files by default, NDJSON opt‑in.
 
-## Configuration
+Event shapes and examples are defined in `README.md` under “JSON Notification Format”.
 
-- `BTC_RPC_API_URL`, `BITCOIN_RPC_USER`, `BITCOIN_RPC_PASSWORD`
-- `BITCOIN_POLL_INTERVAL_MS` (default: 1000)
-- `RESOLVE_INPUT_ADDRESSES` (default: false)
-- `WATCH_ADDRESSES` – CSV `address[:label],...`
+## Configuration (authoritative list in README)
 
-### Logger
+- Core: `BTC_RPC_API_URL`, `BITCOIN_RPC_USER`, `BITCOIN_RPC_PASSWORD`, `BITCOIN_POLL_INTERVAL_MS`
+- Features: `PARSE_RAW_BLOCKS`, `RESOLVE_INPUT_ADDRESSES`
+- Watch list: `WATCH_ADDRESSES_FILE` (preferred JSON file), fallback `WATCH_ADDRESSES` (CSV)
+- Logger: `APP_ENV/NODE_ENV`, `LOG_LEVEL`, `LOG_PRETTY`, `LOG_SERVICE_NAME`
+- Currency: `API_KEY_COINMARKETCAP`, `COINMARKETCAP_BASE_URL`, `CUR_CACHE_VALIDITY_PERIOD`
 
-- `APP_ENV` or `NODE_ENV` – environment name (influences defaults)
-- `LOG_LEVEL` – default `debug` in development, `info` otherwise
-- `LOG_PRETTY` – default `true` in development, `false` otherwise
-- `LOG_SERVICE_NAME` – default `btc-transaction-scanner-bot`
+See “Environment variables” in `README.md` for defaults and examples.
 
-## Data flow (current implementation)
+## Data flow
 
-1) Load config → 2) Create `BitcoinRpcClient` → 3) `BitcoinService.connect()`
-→ 4) `awaitNewBlock()` returns parsed block → 5) `checkTransactions(block, watch)`
-→ 6) Activities list for watched addresses → 7) Emit structured JSON notifications via logger
+1) Load config → 2) Init `BitcoinRpcClient` → 3) `BitcoinService.connect()` → 4) await/parse block (raw or verbose) → 5) `checkTransactions` against watched set → 6) emit JSON events via logger.
 
-## Testing & Non-Functional Requirements (NFRs)
+## Storage abstraction
 
-### Test runner
+All filesystem IO is routed through `FileStorageService` and helpers. Current usages include logger destinations, currency cache, and watch‑list file loading. Implementation and rationale are documented in `README.md` (File storage abstraction).
 
-- Bun test runner (Jest-like API). Commands:
-  - `bun test` – run all tests
-  - `bun test --watch` – watch mode
-  - `bun test --reporter=junit --reporter-outfile=bun.xml` – CI JUnit output
+## Raw parsing and scripts
 
-### Metrics & reporting
+The raw parser components live under `src/infrastructure/bitcoin/raw/*`. For binary formats, script types, and performance considerations, see `docs/BTC_RAW_PARSER.md`.
 
-- Tests emit in-memory metrics which are summarized at the end (colorized table) via a preload file `tests/setup.metrics.ts`.
-- No JSON metric noise during tests; only a final summary is printed.
+## Logger details
 
-### Coverage
+Logger behavior, formats (JSON‑array vs NDJSON), destinations, and redaction are covered in `docs/LOGGER.md`.
 
-- Performance of raw parsing: upper bounds on time and memory delta using fixtures
-- Matching throughput: checkTransactions time with 1000 addresses
-- Latency: block discovery to processing ≤ 5s using a mocked RPC
-- Scalability: ability to handle 1000 addresses and sustained 7 TPS
+## Testing and NFRs
 
-### Extensibility
+Test strategy, metrics summary, and performance/scalability targets are captured in `README.md` under “Testing”. CI/JUnit options are also listed there.
 
-- Thresholds can be parameterized via env variables if tighter CI budgets are needed.
-- Additional metrics can be emitted from tests using the helper in `tests/_metrics.ts` and will appear in the final summary.
+## Optimizations reference
+
+Recent performance‑focused changes and rationale are tracked in `docs/OPTIMIZATIONS.MD`.
+
+## Single sources of truth
+
+- `README.md` – commands, envs, architecture overview, JSON formats, testing
+- `docs/BTC_RAW_PARSER.md` – raw parsing internals
+- `docs/LOGGER.md` – logger API and behavior
+- `docs/OPTIMIZATIONS.MD` – performance notes
+
+This rule intentionally avoids restating those documents; update the docs above when behavior changes.
