@@ -18,15 +18,10 @@
 ### Watched Address Handling
 
 - [x] Normalization and indexing: Normalize addresses (case rules, bech32 casing) once. Build watchSet and a labelIndex off-process at startup, expose as an immutable structure in BitcoinService.
-- [ ] Efficient membership: For 1k–100k addresses, consider a Bloom filter plus exact set to cut hot-path checks.
 
 ### RPC Client and Resilience
 
-- [ ] HTTP agent and keep-alive: Use a keep-alive agent for fetch to reduce TLS/connection overhead. Configure per-host pool limits.
-- [ ] Retries with backoff: Add exponential backoff with jitter for transient RPC failures; classify common Bitcoin Core error codes (e.g., -28 warming up) for smart retry.
-- [ ] Circuit breaker: Trip on sustained failures; surface degraded health; auto-recover with half-open probes.
-- [ ] Batching and pooling: Generalize batch calls and add a concurrency limiter per method. Ensure getRawTransactionVerboseBatch exists and is used where appropriate.
-- [ ] Timeouts per call: Differentiate timeouts for getblockcount, getblockhash, getblock, getrawtransaction, tuned by payload size.
+- [x] HTTP agent and keep-alive: Use a keep-alive agent for fetch to reduce TLS/connection overhead. Configure per-host pool limits.
 
 ### Currency Rates and USD Computation
 
@@ -35,12 +30,12 @@
 
 ### Observability and Operability
 
-- [ ] Logging strategy: Prefer NDJSON for files by default with logrotate-friendly outputs; keep pretty console in dev. The JSON-array file writer in src/infrastructure/logger is unusual—offer it as optional mode only.
+- [ ] Logging strategy: Prefer NDJSON for files by default with logrotate-friendly outputs; keep pretty console in dev.
 - [ ] Tracing: Add spans around block fetch, parse, address match, USD enrichment, and emit.
 
-### Configuration and Secrets
+### Configuration improvements
 
-- [ ] Typed config: Continue migrate to Zod from Ajv with inferred TS types. Emit friendly validation errors with actionable tips.
+- [ ] Typed config: Migrate to Zod from Ajv with inferred TS types. Emit friendly validation errors with actionable tips.
 
 ### Watchlist hot reload
 - [ ] Hot-reload watch list: Watch addresses.json file with debounce and atomic swap of the in-memory structure.
