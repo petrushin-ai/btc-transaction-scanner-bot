@@ -11,7 +11,7 @@ services:
       - ./.env
     environment:
       # Allow overriding or setting explicitly in compose if needed
-      - APP_ENV=${APP_ENV}
+      - APP_ENV=production
       - BTC_RPC_API_URL=${BTC_RPC_API_URL}
       - BITCOIN_POLL_INTERVAL_MS=${BITCOIN_POLL_INTERVAL_MS}
       - RESOLVE_INPUT_ADDRESSES=${RESOLVE_INPUT_ADDRESSES}
