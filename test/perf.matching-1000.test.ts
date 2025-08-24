@@ -32,7 +32,7 @@ function loadLatestParsedBlock(): any {
 
 describe( "Transaction matching performance", () => {
   test( "checkTransactions with 1000 addresses under time budget", async () => {
-    const addresses = loadAddresses( 1000 );
+    let addresses = loadAddresses( 1000 );
     // Build a ParsedBlock using verbose fixture via service path (inputs empty)
     const rpc = new DummyRpc();
     const svc = new BitcoinService( rpc, { resolveInputAddresses: false, parseRawBlocks: false } );
@@ -44,6 +44,31 @@ describe( "Transaction matching performance", () => {
       time: verbose.time,
       transactions: await (svc as any)["parseTransactions"]( verbose.tx ),
     } as const;
+
+    // Ensure matches by injecting up to 10 known addresses from the fixture block
+    const pickFixtureAddresses = (maxCount: number) => {
+      const picked = new Set<string>();
+      for ( const tx of (block as any).transactions || [] ) {
+        for ( const out of tx.outputs || [] ) {
+          if ( typeof out.address === "string" && out.address.length > 0 ) {
+            picked.add( out.address as string );
+            if ( picked.size >= maxCount ) return Array.from( picked );
+          }
+        }
+      }
+      return Array.from( picked );
+    };
+
+    const fixtureAddrs = pickFixtureAddresses( 10 );
+    if ( fixtureAddrs.length > 0 ) {
+      const existing = new Set( addresses.map( (a) => a.address ) );
+      const injected = fixtureAddrs
+        .filter( (addr) => !existing.has( addr ) )
+        .map( (addr, i) => ({ address: addr, label: `fixture-${ i + 1 }` }) );
+      if ( injected.length > 0 ) {
+        addresses = [ ...injected, ...addresses ];
+      }
+    }
 
     const t0 = performance.now();
     const activities = svc.checkTransactions( block as any, addresses );

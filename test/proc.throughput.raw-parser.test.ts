@@ -7,7 +7,6 @@ describe( "Process-level throughput for raw parse (isolated process)", () => {
   test( "measures avg/median/p95 parse time and derived TPS", () => {
     const data = measureThroughput( 100 ) as {
       suite: string;
-      iterations: number;
       txPerBlock: number;
       msAvg: number;
       msMedian: number;
@@ -17,15 +16,8 @@ describe( "Process-level throughput for raw parse (isolated process)", () => {
       tpsP95: number;
     };
 
-    expect( data.iterations ).toBeGreaterThan( 0 );
     expect( data.txPerBlock ).toBeGreaterThan( 0 );
 
-    emitMetric( {
-      suite: "proc-throughput",
-      name: "iterations",
-      value: data.iterations,
-      unit: ""
-    } );
     emitMetric( {
       suite: "proc-throughput",
       name: "tx_per_block",

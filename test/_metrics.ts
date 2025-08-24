@@ -47,16 +47,20 @@ export function memoryUsageMb(): number {
 
 export function peakMemoryUsageMb(): number | undefined {
   try {
-    // Bun implements Node's process.resourceUsage; maxRSS is in kilobytes per Node docs
-    // but some runtimes may return bytes. Detect and convert to MB with 2 decimals.
-    // Some environments may not support it; guard accordingly
+    // maxRSS units differ by platform per getrusage semantics:
+    // - Linux: kilobytes
+    // - macOS (darwin): bytes
+    // Convert deterministically by platform to avoid heuristics.
     const ru: any = (process as any).resourceUsage?.();
     if ( !ru || typeof ru.maxRSS !== "number" ) return undefined;
     const v = ru.maxRSS;
-    const MB = 1024 * 1024;
-    // Heuristic: if value looks like bytes (>= 32MB), convert bytes->MB;
-    // otherwise assume KiB and convert KiB->MB.
-    const mb = v >= (32 * MB) ? (v / MB) : (v / 1024);
+    let mb: number;
+    if ( process.platform === "darwin" ) {
+      mb = v / (1024 * 1024);
+    } else {
+      // Assume kilobytes (Linux and most Unix)
+      mb = v / 1024;
+    }
     return Math.round( mb * 100 ) / 100;
   } catch {
     return undefined;

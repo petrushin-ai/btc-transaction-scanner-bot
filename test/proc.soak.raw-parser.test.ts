@@ -29,12 +29,6 @@ describe( "Process-level soak (10 TPS, 1k addresses)", () => {
       value: data.tpsMeasured,
       unit: "tps"
     } );
-    emitMetric( {
-      suite: "proc-soak",
-      name: "p95_block_latency_ms",
-      value: data.p95BlockLatencyMs,
-      unit: "ms"
-    } );
     // Leave memory metrics to dedicated tests/setup; avoid duplicates here
   } );
 } );

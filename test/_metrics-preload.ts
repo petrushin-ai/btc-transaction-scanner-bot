@@ -35,6 +35,7 @@ function onExit(): void {
   const globalAny = globalThis as any;
   let metrics: any[] = Array
     .isArray( globalAny.__TEST_METRICS__ ) ? globalAny.__TEST_METRICS__ : [];
+  // no-op
   // Also, read persisted metrics to cover parallel workers
   try {
     const OUT_FILE = path.join( process.cwd(), "logs", "test-metrics.jsonl" );
@@ -83,5 +84,7 @@ function onExit(): void {
 // Bun supports lifecycle hooks via --preload; register on process exit
 process.on( "beforeExit", onExit );
 process.on( "exit", onExit );
+
+// no periodic sampling
 
 

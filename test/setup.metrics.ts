@@ -1,7 +1,14 @@
 import { afterAll, beforeAll } from "bun:test";
 
-import { peakMemoryUsageMb } from "./_metrics";
 import "./_metrics-preload";
+
+// Ensure logger stdout is disabled and pretty printing is off during tests
+try {
+  process.env.LOG_STDOUT = process.env.LOG_STDOUT ?? "false";
+  process.env.LOG_PRETTY = process.env.LOG_PRETTY ?? "false";
+} catch {
+  // ignore
+}
 
 type Metric = {
   suite: string;
@@ -69,6 +76,19 @@ function printPretty(metrics: Metric[]): void {
         if ( pa !== pb ) return pa - pb;
         return a.name.localeCompare( b.name );
       } );
+    } else if ( s === "mem-probe" ) {
+      const priority: Record<string, number> = {
+        "mem_idle": 0,
+        "rss_after_mb": 1,
+        "mem_delta": 2,
+        "parse_ms": 3,
+      };
+      rows.sort( (a, b) => {
+        const pa = priority[a.name] ?? 999;
+        const pb = priority[b.name] ?? 999;
+        if ( pa !== pb ) return pa - pb;
+        return a.name.localeCompare( b.name );
+      } );
     } else {
       rows.sort( (a, b) => a.name.localeCompare( b.name ) );
     }
@@ -88,21 +108,7 @@ afterAll( () => {
   try {
     const g = globalThis as any;
     const metrics: Metric[] = Array.isArray( g.__TEST_METRICS__ ) ? g.__TEST_METRICS__ : [];
-    // Emit global mem_max (best-effort) once at the end
-    const peak = peakMemoryUsageMb();
-    if ( typeof peak === "number" && !Number.isNaN( peak ) ) {
-      metrics.push( { suite: "general", name: "mem_max", value: peak, unit: "MB" } );
-    }
     printPretty( metrics );
-  } catch {
-    // ignore
-  }
-} );
-
-beforeAll( () => {
-  try {
-    process.env.LOG_STDOUT = process.env.LOG_STDOUT ?? "false";
-    process.env.LOG_PRETTY = process.env.LOG_PRETTY ?? "false";
   } catch {
     // ignore
   }
