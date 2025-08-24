@@ -106,6 +106,74 @@ describe("Throughput (TPS) load test", () => {
 
     emitMetric({ suite: "throughput", name: "max_measured_tps", value: Math.round(maxMeasured), unit: "tps" });
 
+    // Additionally, measure average TPS over a 10s window at a fixed high load
+    {
+      const tpsForAverage = 50;
+      const durationForAverageSeconds = 10;
+      const blocks = makeBlocks(tpsForAverage, durationForAverageSeconds, watched);
+      const rpc = new MockRpc(blocks);
+      const svc = new BitcoinService(rpc, { parseRawBlocks: false, pollIntervalMs: 1 });
+      await svc.connect();
+
+      let processedTx = 0;
+      const t0 = performance.now();
+      for (let i = 0; i < blocks.length; i++) {
+        rpc.tick();
+        const blk = await svc.awaitNewBlock(i);
+        const acts = svc.checkTransactions(blk, watched);
+        processedTx += blk.transactions.length;
+        if (acts.length < 0) throw new Error("unreachable");
+      }
+      const elapsedMs = performance.now() - t0;
+      const averageTpsOver10s = processedTx / (elapsedMs / 1000);
+      emitMetric({
+        suite: "throughput",
+        name: "avg_measured_tps_10s",
+        value: Math.round(averageTpsOver10s),
+        unit: "tps",
+      });
+    }
+
+    // 100s sustained run at a fixed load with stability stats
+    {
+      const tpsForLongRun = 50;
+      const durationForLongRunSeconds = 100;
+      const blocks = makeBlocks(tpsForLongRun, durationForLongRunSeconds, watched);
+      const rpc = new MockRpc(blocks);
+      const svc = new BitcoinService(rpc, { parseRawBlocks: false, pollIntervalMs: 1 });
+      await svc.connect();
+
+      const perBlockTps: number[] = [];
+      let processedTx = 0;
+      const t0 = performance.now();
+      for (let i = 0; i < blocks.length; i++) {
+        const bStart = performance.now();
+        rpc.tick();
+        const blk = await svc.awaitNewBlock(i);
+        const acts = svc.checkTransactions(blk, watched);
+        processedTx += blk.transactions.length;
+        if (acts.length < 0) throw new Error("unreachable");
+        const bEnd = performance.now();
+        const blockMs = Math.max(1e-6, bEnd - bStart);
+        perBlockTps.push(blk.transactions.length / (blockMs / 1000));
+      }
+      const elapsedMs = performance.now() - t0;
+      const avgTps = processedTx / (elapsedMs / 1000);
+
+      const sorted = [...perBlockTps].sort((a, b) => a - b);
+      const n = sorted.length;
+      const median = n % 2 === 1 ? sorted[(n - 1) / 2] : (sorted[n / 2 - 1] + sorted[n / 2]) / 2;
+      const p95 = sorted[Math.floor(0.95 * (n - 1))];
+      const mean = perBlockTps.reduce((a, v) => a + v, 0) / n;
+      const variance = perBlockTps.reduce((a, v) => a + (v - mean) * (v - mean), 0) / n;
+      const stddev = Math.sqrt(variance);
+
+      emitMetric({ suite: "throughput", name: "avg_measured_tps_100s", value: Math.round(avgTps), unit: "tps" });
+      emitMetric({ suite: "throughput", name: "median_block_tps_100s", value: Math.round(median), unit: "tps" });
+      emitMetric({ suite: "throughput", name: "p95_block_tps_100s", value: Math.round(p95), unit: "tps" });
+      emitMetric({ suite: "throughput", name: "stddev_block_tps_100s", value: Math.round(stddev), unit: "tps" });
+    }
+
     // Baseline assertion: ensure at least ~7 TPS capacity under 1000 watched addresses
     expect(baselineMeasured10).toBeGreaterThanOrEqual(7);
   });

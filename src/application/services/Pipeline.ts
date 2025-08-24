@@ -7,6 +7,7 @@ import type { AddressActivity, ParsedBlock } from "@/types/blockchain";
 import type { AddressActivityFoundEvent, NotificationEmittedEvent } from "@/types/events";
 
 import type { BitcoinService, CurrencyService, EventService } from ".";
+import { WorkersService } from ".";
 
 export function registerEventPipeline(
   events: EventService,
@@ -14,6 +15,7 @@ export function registerEventPipeline(
   cfg: AppConfig,
 ): void {
   const { btc, currency } = services;
+  const workers = new WorkersService(cfg.worker.id, cfg.worker.members);
 
   // Build sinks from config. Default behavior remains logging to stdout.
   const sinks: NotificationSink[] = [];
@@ -47,7 +49,8 @@ export function registerEventPipeline(
     retry: { maxRetries: 3, backoffMs: (n) => Math.min(2000, 100 * n * n) },
     handler: async (ev) => {
       const block: ParsedBlock = await btc.parseBlockByHash(ev.hash);
-      await events.publish({ type: "BlockParsed", timestamp: new Date().toISOString(), block });
+      const dedupeKey = `BlockParsed:${block.height}:${block.hash}`;
+      await events.publish({ type: "BlockParsed", timestamp: new Date().toISOString(), block, dedupeKey });
     },
   });
 
@@ -58,8 +61,9 @@ export function registerEventPipeline(
     retry: { maxRetries: 2, backoffMs: (n) => 100 * n },
     handler: async (ev) => {
       const rate = await getUsdRate(currency);
+      const filteredWatch = workers.filterWatched(cfg.watch);
       const activities: AddressActivity[] = mapActivitiesWithUsd(
-        btc.checkTransactions(ev.block, cfg.watch),
+        btc.checkTransactions(ev.block, filteredWatch),
         rate,
       );
       logBlockSummary(ev.block, activities.length);
@@ -70,6 +74,7 @@ export function registerEventPipeline(
           timestamp: new Date().toISOString(),
           block: { hash: ev.block.hash, height: ev.block.height, time: ev.block.time },
           activity,
+          dedupeKey: `AddressActivity:${ev.block.height}:${ev.block.hash}:${activity.address}:${activity.txid}:${activity.direction}`,
         };
         await events.publish(aev);
       }
@@ -96,6 +101,7 @@ export function registerEventPipeline(
         channel: sinks.length > 0 ? (sinks[0].kind as any) : "stdout",
         ok: true,
         details: { address: ev.activity.address, txid: ev.activity.txid },
+        dedupeKey: `Notification:${ev.block.height}:${ev.block.hash}:${ev.activity.address}:${ev.activity.txid}:${ev.activity.direction}`,
       };
       await events.publish(nev);
     },

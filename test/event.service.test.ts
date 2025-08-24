@@ -10,7 +10,7 @@ describe("EventService", () => {
     const events = new EventService({ maxQueueSize: 10 });
     const received: DomainEvent[] = [];
     events.subscribe({ event: "BlockDetected", handler: (e) => { received.push(e); } });
-    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h" });
+    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h", dedupeKey: "BlockDetected:1:h" });
     await wait(5);
     expect(received.length).toBe(1);
     expect((received[0] as any).height).toBe(1);
@@ -31,7 +31,7 @@ describe("EventService", () => {
       },
     });
     for (let i = 0; i < 5; i++) {
-      await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: i, hash: String(i) });
+      await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: i, hash: String(i), dedupeKey: `BlockDetected:${i}:${String(i)}` });
     }
     await wait(150);
     expect(maxActive).toBeLessThanOrEqual(2);
@@ -48,7 +48,7 @@ describe("EventService", () => {
         throw new Error("boom");
       },
     });
-    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h" });
+    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h", dedupeKey: "BlockDetected:1:h" });
     await wait(20);
     expect(attempts).toBe(3); // initial + 2 retries
   });
@@ -58,9 +58,9 @@ describe("EventService", () => {
     let handled = 0;
     events.subscribe({ event: "BlockDetected", handler: async () => { await wait(30); handled += 1; } });
     const t0 = Date.now();
-    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h1" });
+    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "h1", dedupeKey: "BlockDetected:1:h1" });
     // the second publish should wait until the first drains because queue size is 1 and handler is slow
-    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 2, hash: "h2" });
+    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 2, hash: "h2", dedupeKey: "BlockDetected:2:h2" });
     const dt = Date.now() - t0;
     expect(dt).toBeGreaterThanOrEqual(25);
     await wait(50);

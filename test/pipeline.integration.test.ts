@@ -27,7 +27,7 @@ describe("Pipeline integration", () => {
     const events = new EventService({ maxQueueSize: 10 });
     const btc = fakeBtcService as any;
     const currency = fakeCurrencyService as any;
-    const cfg = { watch: [] } as any;
+    const cfg = { watch: [], worker: { id: "w1", members: ["w1"] } } as any;
 
     let sawParsed = false;
     let sawActivity = 0;
@@ -40,7 +40,7 @@ describe("Pipeline integration", () => {
 
     registerEventPipeline(events as any, { btc, currency }, cfg);
 
-    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "H" });
+    await events.publish({ type: "BlockDetected", timestamp: new Date().toISOString(), height: 1, hash: "H", dedupeKey: "BlockDetected:1:H" });
 
     await new Promise((r) => setTimeout(r, 50));
     expect(sawParsed).toBe(true);

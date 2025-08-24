@@ -12,6 +12,8 @@ export type AppConfig = {
   resolveInputAddresses: boolean;
   parseRawBlocks: boolean;
   maxEventQueueSize: number;
+  // horizontal workers
+  worker: { id: string; members: string[] };
   watch: { address: string; label?: string }[];
   // logger
   environment: string;
@@ -86,6 +88,9 @@ export function loadConfig(): AppConfig {
         PARSE_RAW_BLOCKS: {type: "boolean"},
         WATCH_ADDRESSES_FILE: {type: "string"},
         WATCH_ADDRESSES: {type: "string"},
+        // Workers
+        WORKER_ID: { type: "string" },
+        WORKER_MEMBERS: { type: "string" },
         APP_ENV: {type: "string"},
         NODE_ENV: {type: "string"},
         LOG_SERVICE_NAME: {type: "string"},
@@ -180,6 +185,10 @@ export function loadConfig(): AppConfig {
       subject: (process.env.SINK_NATS_SUBJECT as string).trim(),
     } : undefined,
   } as const;
+  // worker settings
+  const workerId = (process.env.WORKER_ID || "worker-1").toString().trim();
+  const workersCsv = (process.env.WORKER_MEMBERS || workerId).toString().trim();
+  const workerMembers = workersCsv.split(",").map((x) => x.trim()).filter(Boolean);
   let watch: { address: string; label?: string }[] = [];
   try {
     const storage = getFileStorage();
@@ -200,6 +209,7 @@ export function loadConfig(): AppConfig {
     resolveInputAddresses,
     parseRawBlocks,
     maxEventQueueSize,
+    worker: { id: workerId, members: workerMembers },
     watch,
     environment,
     serviceName,

@@ -43,6 +43,7 @@ async function main() {
       timestamp: new Date().toISOString(),
       height: block.height,
       hash: block.hash,
+      dedupeKey: `BlockDetected:${block.height}:${block.hash}`,
     });
   }
 }

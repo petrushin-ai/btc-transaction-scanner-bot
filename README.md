@@ -410,6 +410,22 @@ Notes:
   - `src/config` – env loading and validation
 - Flow per block (event‑driven): load config → await new block → publish `BlockDetected` → parse (raw or verbose) → publish `BlockParsed` → match watched addresses + annotate with USD → publish `AddressActivityFound` per match → emit `NotificationEmitted`.
 
+### Horizontal scaling: workers & partitioning
+
+- Configure logical workers with env:
+  - `WORKER_ID`: unique id of this worker instance (e.g., `scanner-eu-1`).
+  - `WORKER_MEMBERS`: comma‑separated list of all worker ids participating (e.g., `scanner-eu-1,scanner-eu-2`).
+- We use Rendezvous (Highest Random Weight) consistent hashing to partition the watched‑address space deterministically across workers. Each address is processed by exactly one worker.
+- The `WorkersService` filters `cfg.watch` per worker before matching, enabling linear scaling by adding members.
+
+### At‑least‑once delivery and deduplication
+
+- All domain events now include an optional `dedupeKey` field with a deterministic value, e.g.:
+  - `BlockParsed`: `BlockParsed:<height>:<hash>`
+  - `AddressActivityFound`: `AddressActivity:<height>:<hash>:<address>:<txid>:<direction>`
+  - `NotificationEmitted`: `Notification:<height>:<hash>:<address>:<txid>:<direction>`
+- Downstream sinks/consumers can use `dedupeKey` for idempotent processing and at‑least‑once semantics.
+
 ## Event bus and pipeline
 
 The bot is orchestrated by a lightweight in‑memory event bus (`EventService`) and an explicit pipeline (`registerEventPipeline` in `src/application/services/Pipeline.ts`). This makes the flow composable, testable, and easy to extend with new subscribers.
