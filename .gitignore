@@ -1,8 +1,11 @@
 .env
-.idea/
 
 bun.xml
 addresses.json
+
+
+.idea/
+.cursor/
 
 node_modules/
 cache/
