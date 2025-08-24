@@ -1,6 +1,6 @@
-# BTC Transaction‑scanner Bot — Assessment Overview (TypeScript)
+# BTC Transaction‑scanner Bot
 
-This is a concise overview of the solution, optimized for quick review. A full guide lives in `docs/README_FULL.md`.
+This is a concise overview of the solution. A full guide lives in `docs/README_FULL.md`.
 
 ## Quick start (deploy & test first)
 
@@ -115,8 +115,14 @@ echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
 
 ```json
 [
-  { "address": "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxx", "label": "wallet-1" },
-  { "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX", "label": "wallet-2" }
+  {
+    "address": "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxx",
+    "label": "wallet-1"
+  },
+  {
+    "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX",
+    "label": "wallet-2"
+  }
 ]
 ```
 
@@ -272,20 +278,20 @@ By default, file logs are written as NDJSON (newline-delimited JSON) which is lo
 Examples:
 
 ```ts
-import {getLogger} from "./src/infrastructure/logger";
-import {getFileStorage} from "./src/infrastructure";
+import { getLogger } from "./src/infrastructure/logger";
+import { getFileStorage } from "./src/infrastructure";
 
 // Default: NDJSON files (logs/output.ndjson)
 const logger = getLogger();
-logger.info({hello: "world"});
+logger.info( { hello: "world" } );
 
 // Named file with default NDJSON behavior -> logs/my-task.ndjson
-const taskLogger = getLogger({fileName: "my-task"});
-taskLogger.info({step: 1});
+const taskLogger = getLogger( { fileName: "my-task" } );
+taskLogger.info( { step: 1 } );
 
 // JSON array mode for files (writes to logs/stream.json)
-const arrayLogger = getLogger({fileName: "stream", ndjson: false});
-arrayLogger.info({event: "start"});
+const arrayLogger = getLogger( { fileName: "stream", ndjson: false } );
+arrayLogger.info( { event: "start" } );
 ```
 
 ### File storage abstraction
@@ -299,11 +305,11 @@ All filesystem interactions are routed through `FileStorageService` to keep IO c
 You can access the default implementation via:
 
 ```ts
-import {getFileStorage} from "./src/infrastructure";
+import { getFileStorage } from "./src/infrastructure";
 
 const storage = getFileStorage();
-if (storage.fileExists("addresses.json")) {
-  const json = JSON.parse(storage.readFile("addresses.json", "utf-8"));
+if ( storage.fileExists( "addresses.json" ) ) {
+  const json = JSON.parse( storage.readFile( "addresses.json", "utf-8" ) );
 }
 ```
 

@@ -5,7 +5,7 @@ addresses.json
 
 
 .idea/
-.cursor/
+.cursor/**
 
 node_modules/
 cache/
