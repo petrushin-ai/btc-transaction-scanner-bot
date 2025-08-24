@@ -19,6 +19,15 @@ export type AppConfig = {
   logLevel: string;
   logPretty: boolean;
   coinMarketCapApiKey: string;
+  // sinks
+  sinks: {
+    enabled: string[];
+    stdout?: { pretty?: boolean };
+    file?: { path: string };
+    webhook?: { url: string; headers?: Record<string, string>; maxRetries?: number };
+    kafka?: { brokers: string[]; topic: string };
+    nats?: { url: string; subject: string };
+  };
 };
 
 function parseWatchAddresses(raw: string | undefined): { address: string; label?: string }[] {
@@ -87,6 +96,17 @@ export function loadConfig(): AppConfig {
             {type: "string", enum: ["true", "false", "TRUE", "FALSE", "True", "False", ""]},
           ],
         },
+        // Sinks
+        SINKS_ENABLED: { type: "string" },
+        SINK_STDOUT_PRETTY: { anyOf: [ {type: "boolean"}, {type: "string"} ] },
+        SINK_FILE_PATH: { type: "string" },
+        SINK_WEBHOOK_URL: { type: "string" },
+        SINK_WEBHOOK_HEADERS: { type: "string" },
+        SINK_WEBHOOK_MAX_RETRIES: { anyOf: [ {type: "integer"}, {type: "string"} ] },
+        SINK_KAFKA_BROKERS: { type: "string" },
+        SINK_KAFKA_TOPIC: { type: "string" },
+        SINK_NATS_URL: { type: "string" },
+        SINK_NATS_SUBJECT: { type: "string" },
       },
     } as const;
 
@@ -136,6 +156,30 @@ export function loadConfig(): AppConfig {
   const prettyDefault = environment === "development" ? "true" : "false";
   const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
   const coinMarketCapApiKey = (process.env.API_KEY_COINMARKETCAP as string).trim();
+  // sinks parsing
+  const sinksEnabledCsv = (process.env.SINKS_ENABLED || "stdout").toString().trim();
+  const enabled = sinksEnabledCsv
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const sinks = {
+    enabled,
+    stdout: { pretty: ((process.env.SINK_STDOUT_PRETTY || (logPretty ? "true" : "false")).toString().toLowerCase().trim() === "true") },
+    file: process.env.SINK_FILE_PATH ? { path: (process.env.SINK_FILE_PATH as string).trim() } : undefined,
+    webhook: process.env.SINK_WEBHOOK_URL ? {
+      url: (process.env.SINK_WEBHOOK_URL as string).trim(),
+      headers: process.env.SINK_WEBHOOK_HEADERS ? JSON.parse((process.env.SINK_WEBHOOK_HEADERS as string).trim()) : undefined,
+      maxRetries: process.env.SINK_WEBHOOK_MAX_RETRIES ? Number((process.env.SINK_WEBHOOK_MAX_RETRIES as string).trim()) : undefined,
+    } : undefined,
+    kafka: process.env.SINK_KAFKA_BROKERS && process.env.SINK_KAFKA_TOPIC ? {
+      brokers: (process.env.SINK_KAFKA_BROKERS as string).split(",").map((x) => x.trim()).filter(Boolean),
+      topic: (process.env.SINK_KAFKA_TOPIC as string).trim(),
+    } : undefined,
+    nats: process.env.SINK_NATS_URL && process.env.SINK_NATS_SUBJECT ? {
+      url: (process.env.SINK_NATS_URL as string).trim(),
+      subject: (process.env.SINK_NATS_SUBJECT as string).trim(),
+    } : undefined,
+  } as const;
   let watch: { address: string; label?: string }[] = [];
   try {
     const storage = getFileStorage();
@@ -162,6 +206,7 @@ export function loadConfig(): AppConfig {
     logLevel,
     logPretty,
     coinMarketCapApiKey,
+    sinks,
   };
 }
 

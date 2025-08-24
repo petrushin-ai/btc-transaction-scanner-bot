@@ -366,6 +366,30 @@ Network is detected from `getblockchaininfo.chain` and passed into address encod
   - Configuration of addresses and names: `WATCH_ADDRESSES_FILE` (JSON array) or fallback `WATCH_ADDRESSES` CSV. See `src/config/index.ts`.
   - Post new transactions and info (from/to, amount, USD, tx hash): JSON `transaction.activity` logs with `address`, `direction`, `valueBtc`, `valueUsd`, `txid`.
   - Technical requirements compliance: validated by tests in `tests/` with metrics summary.
+
+### Pluggable sinks (stdout, file, webhook, Kafka/NATS)
+
+The bot emits notifications for each watched address activity. By default, it logs structured JSON to stdout. You can enable additional sinks via environment variables:
+
+Env vars:
+
+- `SINKS_ENABLED`: comma-separated list of sinks. Defaults to `stdout`.
+  - Supported: `stdout`, `file`, `webhook`, `kafka`, `nats`.
+- `SINK_STDOUT_PRETTY`: `true|false` pretty-print summary to stdout (defaults to pretty in development).
+- `SINK_FILE_PATH`: absolute path to NDJSON file. Example: `/var/log/btc-bot/activities.ndjson`.
+- `SINK_WEBHOOK_URL`: HTTP endpoint for POSTing the full `AddressActivityFound` event
+- `SINK_WEBHOOK_HEADERS`: JSON object of headers (stringified). Example: `{ "Authorization": "Bearer x" }`
+- `SINK_WEBHOOK_MAX_RETRIES`: integer retries on 5xx/network errors (default 3)
+- `SINK_KAFKA_BROKERS`: comma-separated list of broker addresses
+- `SINK_KAFKA_TOPIC`: topic name
+- `SINK_NATS_URL`: server URL
+- `SINK_NATS_SUBJECT`: subject name
+
+Notes:
+
+- Kafka/NATS sinks are shipped as stubs to avoid adding heavy dependencies by default; they log a warning when used.
+- File sink appends NDJSON lines safely via the storage abstraction.
+- Webhook sink retries transient failures with capped backoff.
 - Transaction Notifications
   - JSON logs to stdout and files; USD equity included when currency service configured.
   - Mixed in/out operations per tx are netted to a single event.

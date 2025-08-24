@@ -23,7 +23,7 @@ export type AddressActivityFoundEvent = {
 export type NotificationEmittedEvent = {
   type: "NotificationEmitted";
   timestamp: string;
-  channel: "logger" | "webhook" | "stdout";
+  channel: "logger" | "webhook" | "stdout" | "file" | "kafka" | "nats";
   ok: boolean;
   details?: Record<string, unknown>;
 };
