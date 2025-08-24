@@ -12,8 +12,8 @@
 ### Raw Parsing and Transaction Analysis
 
 - [x] Zero-copy safe parsing: The raw parser already avoids materializing strings; preserve and extend that for witness parsing and scripts. Add defensive bounds checks in ByteReader.
-- [ ] Script coverage: Expand script interpreter coverage (P2SH-P2WPKH, P2TR tapscripts basics) and unify address derivation/validation in one module. Normalize Bech32 case and validate checksum centrally.
-- [ ] OP_RETURN policy: Log OP_RETURN safely with size caps, UTF‑8 detection, and hex fallback. Add redaction rules for large payloads.
+- [x] Script coverage: Expand script interpreter coverage (P2SH-P2WPKH, P2TR tapscripts basics) and unify address derivation/validation in one module. Normalize Bech32 case and validate checksum centrally.
+- [x] OP_RETURN policy: Log OP_RETURN safely with size caps, UTF‑8 detection, and hex fallback. Add redaction rules for large payloads.
 
 ### Watched Address Handling
 
