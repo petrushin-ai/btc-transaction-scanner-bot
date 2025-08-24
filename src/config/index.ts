@@ -1,9 +1,7 @@
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
 import path from "path";
+import { z } from "zod";
 
 import { normalizeWatchedAddresses } from "@/application/helpers/bitcoin";
-import { getAddressVersionsForNetwork } from "@/infrastructure/bitcoin/raw/Address";
 import { getFileStorage } from "@/infrastructure/storage/FileStorageService";
 
 import { loadEnvFiles } from "./env";
@@ -35,184 +33,155 @@ export type AppConfig = {
 };
 
 function parseWatchAddresses(raw: string | undefined): { address: string; label?: string }[] {
-  if (!raw) return [];
+  if ( !raw ) return [];
   // CSV format: address[:label],address[:label]
   return raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((item) => {
-      const [ address, label ] = item.split(":");
+    .split( "," )
+    .map( (s) => s.trim() )
+    .filter( Boolean )
+    .map( (item) => {
+      const [ address, label ] = item.split( ":" );
       return { address, label };
-    });
+    } );
 }
 
 export function loadConfig(): AppConfig {
   loadEnvFiles();
-  // Validate environment variables before reading them
-  const ajv = new Ajv({ allErrors: true, coerceTypes: true, useDefaults: false });
-  addFormats(ajv);
-  try {
-    const schema = {
-      type: "object",
-      required: [
-        "BTC_RPC_API_URL"
-      ],
-      additionalProperties: false,
-      properties: {
-        API_KEY_COINMARKETCAP: { type: "string" },
-        BTC_RPC_API_URL: {
-          type: "string",
-          allOf: [
-            { format: "uri" },
-            { pattern: "^https?://" },
-          ],
-        },
-        MAX_EVENT_QUEUE_SIZE: {
-          anyOf: [
-            { type: "integer", minimum: 1 },
-            { type: "string", pattern: "^[0-9]+$" },
-          ],
-        },
-        BITCOIN_POLL_INTERVAL_MS: {
-          anyOf: [
-            { type: "integer", minimum: 1 },
-            { type: "string", pattern: "^[0-9]+$" },
-          ],
-        },
-        COINMARKETCAP_BASE_URL: { type: "string" },
-        RESOLVE_INPUT_ADDRESSES: {
-          anyOf: [
-            { type: "boolean" },
-            { type: "string", enum: [ "true", "false", "TRUE", "FALSE", "True", "False", "" ] },
-          ],
-        },
-        PARSE_RAW_BLOCKS: { type: "boolean" },
-        WATCH_ADDRESSES_FILE: { type: "string" },
-        WATCH_ADDRESSES: { type: "string" },
-        // Workers
-        WORKER_ID: { type: "string" },
-        WORKER_MEMBERS: { type: "string" },
-        APP_ENV: { type: "string" },
-        NODE_ENV: { type: "string" },
-        LOG_SERVICE_NAME: { type: "string" },
-        LOG_LEVEL: { type: "string" },
-        LOG_PRETTY: {
-          anyOf: [
-            { type: "boolean" },
-            { type: "string", enum: [ "true", "false", "TRUE", "FALSE", "True", "False", "" ] },
-          ],
-        },
-        // Sinks
-        SINKS_ENABLED: { type: "string" },
-        SINK_STDOUT_PRETTY: { anyOf: [ { type: "boolean" }, { type: "string" } ] },
-        SINK_FILE_PATH: { type: "string" },
-        SINK_WEBHOOK_URL: { type: "string" },
-        SINK_WEBHOOK_HEADERS: { type: "string" },
-        SINK_WEBHOOK_MAX_RETRIES: { anyOf: [ { type: "integer" }, { type: "string" } ] },
-        SINK_KAFKA_BROKERS: { type: "string" },
-        SINK_KAFKA_TOPIC: { type: "string" },
-        SINK_NATS_URL: { type: "string" },
-        SINK_NATS_SUBJECT: { type: "string" },
-      },
-    } as const;
+  // Zod schema for process.env
+  const envSchema = z.object( {
+    API_KEY_COINMARKETCAP: z.string().optional(),
+    BTC_RPC_API_URL: z.string()
+      .url( { message: "must be a valid URL" } )
+      .regex( /^https?:\/\//, { message: "must start with http:// or https://" } ),
+    MAX_EVENT_QUEUE_SIZE: z.coerce.number().int().min( 1 ).default( 2000 ),
+    BITCOIN_POLL_INTERVAL_MS: z.coerce.number().int().min( 1 ).default( 1000 ),
+    COINMARKETCAP_BASE_URL: z.string().optional(),
+    RESOLVE_INPUT_ADDRESSES: z.coerce.boolean().optional().default( false ),
+    PARSE_RAW_BLOCKS: z.coerce.boolean().optional().default( false ),
+    WATCH_ADDRESSES_FILE: z.string().optional(),
+    WATCH_ADDRESSES: z.string().optional(),
+    // Workers
+    WORKER_ID: z.string().optional().default( "worker-1" ),
+    WORKER_MEMBERS: z.string().optional(),
+    APP_ENV: z.string().optional(),
+    NODE_ENV: z.string().optional(),
+    LOG_SERVICE_NAME: z.string().optional().default( "btc-transaction-scanner-bot" ),
+    LOG_LEVEL: z.string().optional(),
+    LOG_PRETTY: z.union( [ z.string(), z.boolean() ] ).optional(),
+    // Sinks
+    SINKS_ENABLED: z.string().optional().default( "stdout" ),
+    SINK_STDOUT_PRETTY: z.union( [ z.string(), z.boolean() ] ).optional(),
+    SINK_FILE_PATH: z.string().optional(),
+    SINK_WEBHOOK_URL: z.url().optional(),
+    SINK_WEBHOOK_HEADERS: z.string().optional(),
+    SINK_WEBHOOK_MAX_RETRIES: z.union( [ z.coerce.number().int(), z.string() ] ).optional(),
+    SINK_KAFKA_BROKERS: z.string().optional(),
+    SINK_KAFKA_TOPIC: z.string().optional(),
+    SINK_NATS_URL: z.string().optional(),
+    SINK_NATS_SUBJECT: z.string().optional(),
+    BITCOIN_NETWORK: z.enum( [ "mainnet", "testnet", "signet", "regtest" ] ).optional(),
+  } ).strict();
 
-    const allowedKeys = Object.keys(schema.properties as Record<string, unknown>);
-    const envData: Record<string, unknown> = {};
-    for (const key of allowedKeys) {
-      if (Object.prototype.hasOwnProperty.call(process.env, key)) {
-        const value = process.env[key];
-        envData[key] = typeof value === "string" ? value.trim() : value;
-      }
-    }
-
-    const valid = ajv.validate(schema as any, envData);
-    if (!valid) {
-      const errors = (ajv.errors || []).map((e) => {
-        const key = e.instancePath
-          ?.replace(/^\//, "") || (e.params as any)?.missingProperty || e.keyword;
-        const msg = e.message || "invalid value";
-        return `- ${key}: ${msg}`;
-      });
-      const details = errors.length > 0 ? `\n${errors.join("\n")}` : "";
-      throw new Error(`Environment validation failed:${details}`);
-    }
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    throw new Error(`Environment validation failed: ${message}`);
+  const result = envSchema.safeParse( process.env );
+  if ( !result.success ) {
+    const tips: Record<string, string> = {
+      BTC_RPC_API_URL: "Set BTC_RPC_API_URL to http(s)://host:port, e.g. http://localhost:8332",
+      BITCOIN_POLL_INTERVAL_MS: "Use a positive integer; defaults to 1000 if unset",
+      MAX_EVENT_QUEUE_SIZE: "Use a positive integer; defaults to 2000 if unset",
+      RESOLVE_INPUT_ADDRESSES: "Use true or false",
+      PARSE_RAW_BLOCKS: "Use true or false",
+      LOG_PRETTY: "Use true or false (defaults to true in development)",
+      SINKS_ENABLED: "CSV list of enabled sinks, e.g. stdout,file,webhook",
+      SINK_KAFKA_BROKERS: "CSV list of brokers, e.g. localhost:9092,broker:9092",
+      SINK_WEBHOOK_HEADERS: "JSON object string, e.g. {\"Authorization\":\"Bearer ...\"}",
+    };
+    const details = result.error.issues.map( (issue) => {
+      const keyName = String( issue.path[0] ?? issue.code );
+      const tip = tips[keyName] ? ` Tip: ${ tips[keyName] }.` : "";
+      return `- ${ keyName }: ${ issue.message }.${ tip }`;
+    } ).join( "\n" );
+    throw new Error( `Environment validation failed:\n${ details }` );
   }
+  const env = result.data;
   const cwd = process.cwd();
   const addressesFile = (
-    process.env.WATCH_ADDRESSES_FILE || path.join(cwd, "addresses.json")
+    env.WATCH_ADDRESSES_FILE || path.join( cwd, "addresses.json" )
   ).trim();
-  const bitcoinRpcUrl = (process.env.BTC_RPC_API_URL as string).trim();
-  const pollIntervalMs = Number((process.env.BITCOIN_POLL_INTERVAL_MS || "1000").toString().trim());
-  const maxEventQueueSize = Number((process.env.MAX_EVENT_QUEUE_SIZE || "2000").toString().trim());
-  const resolveInputAddresses = (
-    process.env.RESOLVE_INPUT_ADDRESSES ?? ""
-  ).toString().toLowerCase().trim() === "true";
-  const parseRawBlocks = (process.env.PARSE_RAW_BLOCKS ?? "").toString().toLowerCase().trim() === "true";
+  const bitcoinRpcUrl = env.BTC_RPC_API_URL.trim();
+  const pollIntervalMs = Number( env.BITCOIN_POLL_INTERVAL_MS );
+  const maxEventQueueSize = Number( env.MAX_EVENT_QUEUE_SIZE );
+  const resolveInputAddresses = Boolean( env.RESOLVE_INPUT_ADDRESSES );
+  const parseRawBlocks = Boolean( env.PARSE_RAW_BLOCKS );
   const environment = (
-    process.env.APP_ENV || process.env.NODE_ENV || "development"
+    env.APP_ENV || env.NODE_ENV || "development"
   ).toString().trim();
   const serviceName = (
-    process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot"
+    env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot"
   ).toString().trim();
   const defaultLevel = environment === "development" ? "debug" : "info";
-  const logLevel = (process.env.LOG_LEVEL || defaultLevel).toString().trim();
+  const logLevel = (env.LOG_LEVEL || defaultLevel).toString().trim();
   const prettyDefault = environment === "development" ? "true" : "false";
-  const logPretty = (process.env.LOG_PRETTY || prettyDefault).toString().toLowerCase().trim() === "true";
-  const coinMarketCapApiKey = (process.env.API_KEY_COINMARKETCAP as string).trim();
+  const logPretty = (env.LOG_PRETTY ?? prettyDefault).toString().toLowerCase().trim() === "true";
+  const coinMarketCapApiKey = (env.API_KEY_COINMARKETCAP || "").toString().trim();
   // sinks parsing
-  const sinksEnabledCsv = (process.env.SINKS_ENABLED || "stdout").toString().trim();
+  const sinksEnabledCsv = (env.SINKS_ENABLED || "stdout").toString().trim();
   const enabled = sinksEnabledCsv
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+    .split( "," )
+    .map( (s) => s.trim() )
+    .filter( Boolean );
   const sinks = {
     enabled,
-    stdout: { pretty: ((process.env.SINK_STDOUT_PRETTY || (logPretty ? "true" : "false")).toString().toLowerCase().trim() === "true") },
-    file: process.env.SINK_FILE_PATH ? { path: (process.env.SINK_FILE_PATH as string).trim() } : undefined,
-    webhook: process.env.SINK_WEBHOOK_URL ? {
-      url: (process.env.SINK_WEBHOOK_URL as string).trim(),
-      headers: process.env.SINK_WEBHOOK_HEADERS ? JSON.parse((process.env.SINK_WEBHOOK_HEADERS as string).trim()) : undefined,
-      maxRetries: process.env.SINK_WEBHOOK_MAX_RETRIES ? Number((process.env.SINK_WEBHOOK_MAX_RETRIES as string).trim()) : undefined,
+    stdout: { pretty: (((env.SINK_STDOUT_PRETTY ?? (logPretty ? "true" : "false")).toString().toLowerCase().trim() === "true")) },
+    file: env.SINK_FILE_PATH ? { path: env.SINK_FILE_PATH.trim() } : undefined,
+    webhook: env.SINK_WEBHOOK_URL ? {
+      url: env.SINK_WEBHOOK_URL.trim(),
+      headers: env.SINK_WEBHOOK_HEADERS ? (() => {
+        try {
+          return JSON.parse( env.SINK_WEBHOOK_HEADERS.trim() );
+        } catch {
+          throw new Error( "Environment validation failed: - SINK_WEBHOOK_HEADERS: must be valid JSON. Tip: e.g. {\"Authorization\":\"Bearer ...\"}" );
+        }
+      })() : undefined,
+      maxRetries: env.SINK_WEBHOOK_MAX_RETRIES ? Number( env.SINK_WEBHOOK_MAX_RETRIES.toString().trim() ) : undefined,
     } : undefined,
-    kafka: process.env.SINK_KAFKA_BROKERS && process.env.SINK_KAFKA_TOPIC ? {
-      brokers: (process.env.SINK_KAFKA_BROKERS as string).split(",").map((x) => x.trim()).filter(Boolean),
-      topic: (process.env.SINK_KAFKA_TOPIC as string).trim(),
+    kafka: env.SINK_KAFKA_BROKERS && env.SINK_KAFKA_TOPIC ? {
+      brokers: env.SINK_KAFKA_BROKERS.split( "," ).map( (x) => x.trim() ).filter( Boolean ),
+      topic: env.SINK_KAFKA_TOPIC.trim(),
     } : undefined,
-    nats: process.env.SINK_NATS_URL && process.env.SINK_NATS_SUBJECT ? {
-      url: (process.env.SINK_NATS_URL as string).trim(),
-      subject: (process.env.SINK_NATS_SUBJECT as string).trim(),
+    nats: env.SINK_NATS_URL && env.SINK_NATS_SUBJECT ? {
+      url: env.SINK_NATS_URL.trim(),
+      subject: env.SINK_NATS_SUBJECT.trim(),
     } : undefined,
   } as const;
   // worker settings
-  const workerId = (process.env.WORKER_ID || "worker-1").toString().trim();
-  const workersCsv = (process.env.WORKER_MEMBERS || workerId).toString().trim();
-  const workerMembers = workersCsv.split(",").map((x) => x.trim()).filter(Boolean);
+  const workerId = (env.WORKER_ID || "worker-1").toString().trim();
+  const workersCsv = (env.WORKER_MEMBERS || workerId).toString().trim();
+  const workerMembers = workersCsv.split( "," ).map( (x) => x.trim() ).filter( Boolean );
   let watch: { address: string; label?: string }[] = [];
   try {
     const storage = getFileStorage();
-    const fileContent = storage.readFile(addressesFile, "utf-8");
-    const json = JSON.parse(fileContent);
-    if (Array.isArray(json)) {
-      const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
+    const fileContent = storage.readFile( addressesFile, "utf-8" );
+    const json = JSON.parse( fileContent );
+    if ( Array.isArray( json ) ) {
+      const networkGuess = (env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
       // Guess from RPC URL if no explicit network provided
       let net: any = undefined;
-      if (networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest") {
+      if ( networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest" ) {
         net = networkGuess as any;
       }
-      const items = json.filter((x) => typeof x?.address === "string").map((x) => ({ address: x.address, label: x.label }));
-      watch = normalizeWatchedAddresses(items, net);
+      const items = json.filter( (x) => typeof x?.address === "string" ).map( (x) => ({
+        address: x.address,
+        label: x.label
+      }) );
+      watch = normalizeWatchedAddresses( items, net );
     }
   } catch {
-    const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
+    const networkGuess = (env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
     let net: any = undefined;
-    if (networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest") {
+    if ( networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest" ) {
       net = networkGuess as any;
     }
-    watch = normalizeWatchedAddresses(parseWatchAddresses(process.env.WATCH_ADDRESSES), net);
+    watch = normalizeWatchedAddresses( parseWatchAddresses( env.WATCH_ADDRESSES ), net );
   }
   return {
     bitcoinRpcUrl,

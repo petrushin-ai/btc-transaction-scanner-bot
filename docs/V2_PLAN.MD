@@ -34,7 +34,7 @@
 
 ### Configuration improvements
 
-- [ ] Typed config: Migrate to Zod from Ajv with inferred TS types. Emit friendly validation errors with actionable tips.
+- [x] Typed config: Migrate to Zod from Ajv with inferred TS types. Emit friendly validation errors with actionable tips.
 
 ### Watchlist hot reload
 - [ ] Hot-reload watch list: Watch addresses.json file with debounce and atomic swap of the in-memory structure.
