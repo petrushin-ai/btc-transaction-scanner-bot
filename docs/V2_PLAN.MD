@@ -4,12 +4,12 @@
 - [x] Pluggable sinks: Abstract notification sinks (stdout JSON, file, Kafka/NATS, webhook). Keep stdout as default to meet requirements; enable enterprise outputs via config.
 - [ ] State management: Persist last processed height and progress markers to durable storage (e.g., file, Redis, Postgres). On restart, resume deterministically instead of let lastHeight in src/index.ts.
 - [x] Horizontal scale strategy: Partition the watched-address space across workers (consistent hashing). Add dedupe keys for events to support at-least-once delivery.
-- [ ] Feature flags: Centralize feature flags with typed config (e.g., parseRawBlocks, resolveInputAddresses) and runtime-refreshable toggles.
+- [x] Feature flags: Centralize feature flags with typed config (e.g., parseRawBlocks, resolveInputAddresses) and runtime-refreshable toggles.
 
 ### Block Detection and Ingestion
 
 - [ ] Low-latency block signals: Add Bitcoin Core ZMQ subscription or getblock longpoll to reduce poll latency and RPC overhead. Keep polling as fallback with jitter.
-- [ ] Backpressure-aware loop: Replace for(;;) with a queue-driven loop and bounded concurrency. Drop or delay non-critical work when lagging.
+- [ ] Backpressure-aware loop: Replace for(;;) with a queue-driven loop and bounded concurrency. Delay non-critical work when lagging.
 
 ### Raw Parsing and Transaction Analysis
 

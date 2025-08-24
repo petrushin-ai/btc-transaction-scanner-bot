@@ -2,6 +2,85 @@
 
 Assesment job - Bun + TypeScript
 
+## Quick start from clone (addresses.json is gitignored)
+
+Follow these steps to run the bot end-to-end after cloning the repo. Since `addresses.json` is intentionally in `.gitignore`, you must create it locally before starting.
+
+1) Clone and enter the project
+
+```bash
+git clone <repo-url> btc-transaction-scanner-bot
+cd btc-transaction-scanner-bot
+```
+
+2) Create a minimal .env
+
+```bash
+cp .env.scripts .env || true
+echo "APP_ENV=development" >> .env
+echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
+# Optional (enables USD amounts):
+# echo "API_KEY_COINMARKETCAP=your_key" >> .env
+# Optional flags:
+# echo "PARSE_RAW_BLOCKS=true" >> .env
+# echo "RESOLVE_INPUT_ADDRESSES=true" >> .env
+```
+
+3) Create `addresses.json` (gitignored) at project root
+
+```json
+[
+  { "address": "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxx", "label": "wallet-1" },
+  { "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX", "label": "wallet-2" }
+]
+```
+
+4) Start locally with Bun
+
+```bash
+bun install
+bun run start
+# or: bun run dev  # live-reload
+```
+
+— or —
+
+5) Run with Docker (single container)
+
+```bash
+bun run docker:build
+docker run --rm \
+  --env-file .env \
+  -v $(pwd)/addresses.json:/app/addresses.json:ro \
+  -v $(pwd)/cache:/app/cache \
+  -v $(pwd)/logs:/app/logs \
+  btc-transaction-scanner-bot
+```
+
+— or —
+
+6) Run with Docker Compose (recommended)
+
+Ensure `addresses.json` exists at project root (Compose mounts `./addresses.json:/app/addresses.json`). Then:
+
+```bash
+# Prod-like run
+bun run docker:up
+# tail logs
+bun run docker:logs
+# stop
+bun run docker:down
+
+# Dev with live reload (mounts project)
+bun run docker:dev:up
+# stop
+bun run docker:dev:down
+```
+
+Notes:
+- If you prefer not to use a file, you can supply addresses via the `WATCH_ADDRESSES` env var (CSV: `address[:label],address[:label],...`). File path is configurable via `WATCH_ADDRESSES_FILE` (default `./addresses.json`).
+- Set `BTC_RPC_API_URL` to any Bitcoin Core–compatible RPC endpoint (local node or a provider). Basic auth can be set with `BITCOIN_RPC_USER`/`BITCOIN_RPC_PASSWORD`.
+
 ## Essential: scripts and options
 
 - **Local dev (watch mode)**: `bun run dev` — runs `bun --watch src/index.ts`
