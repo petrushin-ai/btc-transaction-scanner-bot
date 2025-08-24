@@ -25,17 +25,10 @@ describe( "Process-level memory during raw parse (isolated process)", () => {
     expect( block.transactions.length ).toBeGreaterThan( 0 );
 
     // Emit in 'general' suite using agreed metric names
-    emitMetric( { suite: "general", name: "mem_proc_idle", value: rssBeforeMb, unit: "MB" } );
     emitMetric( {
       suite: "general",
       name: "mem_proc_parsing_delta",
       value: rssDeltaMb,
-      unit: "MB"
-    } );
-    emitMetric( {
-      suite: "general",
-      name: "mem_proc_max",
-      value: Math.max( rssBeforeMb, rssAfterMb ),
       unit: "MB"
     } );
   } );

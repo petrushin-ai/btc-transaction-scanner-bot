@@ -24,7 +24,7 @@ describe( "Process-level throughput for raw parse (isolated process)", () => {
       suite: "proc-throughput",
       name: "iterations",
       value: data.iterations,
-      unit: "runs"
+      unit: ""
     } );
     emitMetric( {
       suite: "proc-throughput",
@@ -32,7 +32,6 @@ describe( "Process-level throughput for raw parse (isolated process)", () => {
       value: data.txPerBlock,
       unit: "tx"
     } );
-    emitMetric( { suite: "proc-throughput", name: "parse_ms_avg", value: data.msAvg, unit: "ms" } );
     emitMetric( {
       suite: "proc-throughput",
       name: "parse_ms_median",
@@ -40,7 +39,6 @@ describe( "Process-level throughput for raw parse (isolated process)", () => {
       unit: "ms"
     } );
     emitMetric( { suite: "proc-throughput", name: "parse_ms_p95", value: data.msP95, unit: "ms" } );
-    emitMetric( { suite: "proc-throughput", name: "tps_avg", value: data.tpsAvg, unit: "tps" } );
     emitMetric( {
       suite: "proc-throughput",
       name: "tps_median",

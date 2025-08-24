@@ -29,14 +29,13 @@ describe( "Process-level soak (10 TPS, 1k addresses)", () => {
       value: data.tpsMeasured,
       unit: "tps"
     } );
-    emitMetric( { suite: "proc-soak", name: "rss_idle_mb", value: data.rssIdleMb, unit: "MB" } );
-    emitMetric( { suite: "proc-soak", name: "rss_max_mb", value: data.rssMaxMb, unit: "MB" } );
-    emitMetric( { suite: "proc-soak", name: "rss_delta_mb", value: data.rssDeltaMb, unit: "MB" } );
     emitMetric( {
       suite: "proc-soak",
       name: "p95_block_latency_ms",
       value: data.p95BlockLatencyMs,
       unit: "ms"
     } );
+    // Also emit general mem_proc_max
+    emitMetric( { suite: "general", name: "mem_proc_max", value: data.rssMaxMb, unit: "MB" } );
   } );
 } );
