@@ -300,7 +300,7 @@ Pretty metrics summary example:
 Metrics Summary (4 metrics)
 
   latency
-    block_discovery_to_processing_ms => 203 ms
+    block_discovery_to_stdout => 203 ms
 
   matching
     check_1000_addresses_ms => 2 ms  [activities=0]
@@ -530,7 +530,7 @@ See also:
 
 Visuals:
 
-![System architecture diagram](docs/architecture.png)
+![System architecture diagram](docs/architecture.jpg)
 
 ![Block flow sequence](docs/block-sequence.png)
 

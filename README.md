@@ -32,7 +32,7 @@ Docker/Compose and full instructions are in `docs/README_FULL.md`.
 
 ## Architecture at a glance
 
-![System architecture diagram](docs/architecture.png)
+![System architecture diagram](docs/architecture.jpg)
 
 ![Block flow sequence](docs/block-sequence.png)
 
@@ -621,7 +621,7 @@ See also:
 
 Visuals:
 
-![System architecture diagram](docs/architecture.png)
+![System architecture diagram](docs/architecture.jpg)
 
 ![Block flow sequence](docs/block-sequence.png)
 
