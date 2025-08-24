@@ -57,6 +57,37 @@ export class BitcoinRpcClient {
     return json.result;
   }
 
+  private async callBatch(requests: { method: string; params?: unknown[] }[]): Promise<any[]> {
+    if (requests.length === 0) return [];
+    const batch: JsonRpcRequest[] = requests.map((r) => ({
+      jsonrpc: "2.0",
+      id: this.nextId++,
+      method: r.method,
+      params: r.params || [],
+    }));
+    const {fetchJson, HTTP_METHOD} = await import("@/application/helpers/http");
+    const json = await fetchJson<JsonRpcResponse<unknown>[]>(this.url, {
+      method: HTTP_METHOD.POST,
+      headers: {
+        "content-type": "application/json",
+        ...(this.authHeader ? {authorization: this.authHeader} : {}),
+      },
+      body: batch,
+      timeoutMs: this.timeoutMs,
+    });
+    // Map responses by id since servers may reorder
+    const byId = new Map<number, JsonRpcResponse<unknown>>();
+    for (const res of json) byId.set(res.id, res);
+    const results: any[] = [];
+    for (const req of batch) {
+      const res = byId.get(req.id);
+      if (!res) throw new Error(`RPC batch missing response for id ${req.id}`);
+      if (res.error) throw new Error(`RPC ${req.method} error ${res.error.code}: ${res.error.message}`);
+      results.push(res.result);
+    }
+    return results;
+  }
+
   getBlockchainInfo(): Promise<{ chain: string; blocks: number }> {
     return this.call("getblockchaininfo");
   }
@@ -89,6 +120,12 @@ export class BitcoinRpcClient {
   // for historical lookups
   getRawTransactionVerbose(txid: string): Promise<unknown> {
     return this.call("getrawtransaction", [txid, true]);
+  }
+
+  // Batch version of getrawtransaction for efficiency
+  async getRawTransactionVerboseBatch(txids: string[]): Promise<unknown[]> {
+    const reqs = txids.map((txid) => ({method: "getrawtransaction", params: [txid, true]}));
+    return this.callBatch(reqs);
   }
 
   // getBlockchainNetwork(): Promise<{ chain: string }> {

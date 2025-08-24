@@ -75,6 +75,14 @@ export function sha256d(buffer: Buffer): Buffer {
   return h2;
 }
 
+export function sha256dMany(buffers: Buffer[]): Buffer {
+  const h1 = createHash("sha256");
+  for (const buf of buffers) h1.update(buf);
+  const first = h1.digest();
+  const h2 = createHash("sha256").update(first).digest();
+  return h2;
+}
+
 export function toHexLE(buffer: Buffer): string {
   // Render as big-endian hex of the reversed bytes (for txid/hash display)
   const hexChars = "0123456789abcdef";

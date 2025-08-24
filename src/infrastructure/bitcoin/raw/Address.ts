@@ -5,14 +5,22 @@ const BASE58_ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvw
 export type Network = "mainnet" | "testnet" | "signet" | "regtest";
 
 export function base58checkEncode(version: number, payload: Buffer): string {
-  const data = Buffer.concat([Buffer.from([version]), payload]);
-  const checksum = sha256d(data).subarray(0, 4);
-  const full = Buffer.concat([data, checksum]);
-  return base58Encode(full);
+  // Preallocate and fill [version|payload|checksum]
+  const dataLen = 1 + payload.length;
+  const tmp = Buffer.allocUnsafe(dataLen + 4);
+  tmp[0] = version;
+  payload.copy(tmp, 1);
+  const checksum = sha256d(tmp.subarray(0, dataLen)).subarray(0, 4);
+  checksum.copy(tmp, dataLen);
+  return base58Encode(tmp);
 }
 
 function base58Encode(buffer: Buffer): string {
-  let x = BigInt(`0x${buffer.toString("hex")}`);
+  // Build BigInt directly from bytes to avoid creating a hex string
+  let x = 0n;
+  for (const byte of buffer) {
+    x = (x << 8n) | BigInt(byte);
+  }
   const base = 58n;
   let s = "";
   while (x > 0n) {

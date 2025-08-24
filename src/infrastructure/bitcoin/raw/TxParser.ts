@@ -1,7 +1,5 @@
-import {map as lmap} from "lodash-es";
-
 import type {Network} from "./Address";
-import {btcFromSats, ByteReader, sha256d, toHexLE} from "./ByteReader";
+import {btcFromSats, ByteReader, sha256dMany, toHexLE} from "./ByteReader";
 import {decodeScriptPubKey} from "./Script";
 
 export type ParsedTx = {
@@ -9,7 +7,6 @@ export type ParsedTx = {
   inputs: {
     prevTxId: string;
     prevVout: number;
-    scriptSig: string;
     sequence: number;
     // witness not retained to minimize memory
   }[];
@@ -46,12 +43,12 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
     const prevHashLE = reader.readSlice(32);
     const prevVout = reader.readUInt32LE();
     const scriptLen = reader.readVarInt();
-    const script = reader.readSlice(scriptLen);
+    // consume scriptSig bytes without converting to hex/materializing a string
+    reader.readSlice(scriptLen);
     const sequence = reader.readUInt32LE();
     inputs.push({
       prevTxId: toHexLE(prevHashLE),
       prevVout,
-      scriptSig: script.toString("hex"),
       sequence
     });
   }
@@ -93,8 +90,7 @@ export function parseTransaction(reader: ByteReader, network: Network): ParsedTx
   const versionBytes = reader.sliceAbsolute(start, start + 4);
   const preWitness = reader.sliceAbsolute(vinCountStart, posBeforeWitness);
   const locktimeBytes = reader.sliceAbsolute(locktimeStart, locktimeStart + 4);
-  const nonWitnessSerialization = Buffer.concat([versionBytes, preWitness, locktimeBytes]);
-  const txid = toHexLE(sha256d(nonWitnessSerialization));
+  const txid = toHexLE(sha256dMany([versionBytes, preWitness, locktimeBytes]));
   // witness data omitted intentionally
 
   return {txid, inputs, outputs};

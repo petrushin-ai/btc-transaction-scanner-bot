@@ -30,6 +30,9 @@ export class BitcoinService implements BlockchainService {
     watchSet: Map<string, string | undefined>;
     labelIndex: Map<string, { address: string; label?: string }[]>;
   };
+  // LRU-ish cache for previous transactions to minimize repeat RPCs
+  private _prevTxCache: Map<string, any> = new Map();
+  private _prevTxCacheMax: number = 1000;
 
   constructor(rpc: BitcoinRpcClient, opts?: BitcoinServiceOptions) {
     this.rpc = rpc;
@@ -152,6 +155,16 @@ export class BitcoinService implements BlockchainService {
     };
     // resolve inputs if configured
     if (this.resolveInputAddresses) {
+      // Collect unique prevTxIds across this block
+      const needSet = new Set<string>();
+      for (const rtx of rawParsed.transactions) {
+        for (const vin of rtx.inputs) {
+          const id = vin.prevTxId;
+          if (!id || id === "0".repeat(64)) continue;
+          needSet.add(id);
+        }
+      }
+      const prevMap = await this.getPrevTransactions(Array.from(needSet));
       for (const tx of parsed.transactions) {
         const rawTx = rawParsed.transactions.find((x) => x.txid === tx.txid)!;
         const inputs: { address?: string; valueBtc?: number }[] = [];
@@ -160,16 +173,11 @@ export class BitcoinService implements BlockchainService {
             inputs.push({});
             continue;
           }
-          try {
-            const prev = (await this.rpc.getRawTransactionVerbose(vin.prevTxId)) as any;
-            const prevOut = prev.vout?.[vin.prevVout];
-            const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-            const addr: string | undefined =
-              Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-            inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
-          } catch {
-            inputs.push({});
-          }
+          const prev = prevMap.get(vin.prevTxId) as any | undefined;
+          const prevOut = prev?.vout?.[vin.prevVout];
+          const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
+          const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
+          inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
         }
         (tx as any).inputs = inputs;
       }
@@ -200,6 +208,11 @@ export class BitcoinService implements BlockchainService {
     }
 
     const activities: AddressActivity[] = [];
+    // Reuse scratch structures across tx iterations to reduce per-tx allocations
+    const incoming = new Map<string, number>();
+    const outgoing = new Map<string, number>();
+    const matchedAddressesThisTx = new Set<string>();
+
     for (const tx of block.transactions) {
       // collect OP_RETURN data if present in this tx (first seen wins)
       let opReturnHex: string | undefined;
@@ -210,10 +223,10 @@ export class BitcoinService implements BlockchainService {
           opReturnUtf8 = opReturnUtf8 || (out as any).opReturnUtf8;
         }
       }
-      // Aggregate in/out per address for this tx
-      const incoming = new Map<string, number>();
-      const outgoing = new Map<string, number>();
-      const matchedAddressesThisTx = new Set<string>();
+      // Clear scratch structures for this tx
+      incoming.clear();
+      outgoing.clear();
+      matchedAddressesThisTx.clear();
 
       for (const out of tx.outputs) {
         const addr = out.address;
@@ -229,14 +242,12 @@ export class BitcoinService implements BlockchainService {
         outgoing.set(addr, (outgoing.get(addr) || 0) + input.valueBtc);
       }
 
-      // Emit net activities per address for this tx
-      const addresses = new Set<string>([...incoming.keys(), ...outgoing.keys()]);
-      for (const addr of addresses) {
-        const inSum = incoming.get(addr) || 0;
+      // Emit net activities without building a union Set
+      for (const [addr, inSum] of incoming) {
         const outSum = outgoing.get(addr) || 0;
         if (inSum > 0 && outSum > 0) {
           const net = inSum - outSum;
-          if (Math.abs(net) > 0) {
+          if (net !== 0) {
             activities.push({
               address: addr,
               label: watchSet.get(addr),
@@ -259,7 +270,11 @@ export class BitcoinService implements BlockchainService {
             opReturnUtf8,
           });
           matchedAddressesThisTx.add(addr);
-        } else if (outSum > 0) {
+        }
+      }
+      for (const [addr, outSum] of outgoing) {
+        if (matchedAddressesThisTx.has(addr)) continue;
+        if (outSum > 0) {
           activities.push({
             address: addr,
             label: watchSet.get(addr),
@@ -303,6 +318,16 @@ export class BitcoinService implements BlockchainService {
 
   private async parseTransactions(rawTxs: any[]): Promise<ParsedTransaction[]> {
     const parsed: ParsedTransaction[] = [];
+    let prevMap: Map<string, any> | undefined;
+    if (this.resolveInputAddresses) {
+      const need = new Set<string>();
+      for (const tx of rawTxs) {
+        for (const vin of (tx.vin as any[])) {
+          if (vin && !vin.coinbase && typeof vin.txid === "string") need.add(vin.txid);
+        }
+      }
+      prevMap = await this.getPrevTransactions(Array.from(need));
+    }
     for (const tx of rawTxs) {
       const outputs = (tx.vout as any[]).map((vout) => {
         const spk = vout.scriptPubKey || {};
@@ -348,16 +373,11 @@ export class BitcoinService implements BlockchainService {
             inputs.push({});
             continue;
           }
-          try {
-            const prev = (await this.rpc.getRawTransactionVerbose(vin.txid)) as any;
-            const prevOut = prev.vout?.[vin.vout];
-            const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-            const addr: string | undefined = Array
-              .isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
-            inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
-          } catch {
-            inputs.push({});
-          }
+          const prev = prevMap?.get(vin.txid) as any | undefined;
+          const prevOut = prev?.vout?.[vin.vout];
+          const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
+          const addr: string | undefined = Array.isArray(addresses) ? addresses[0] : prevOut?.scriptPubKey?.address;
+          inputs.push({address: addr, valueBtc: prevOut ? Number(prevOut.value) : undefined});
         }
       }
 
@@ -372,6 +392,51 @@ export class BitcoinService implements BlockchainService {
 
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async getPrevTransactions(txids: string[]): Promise<Map<string, any>> {
+    const result = new Map<string, any>();
+    const missing: string[] = [];
+    for (const id of txids) {
+      const cached = this._prevTxCache.get(id);
+      if (cached) {
+        result.set(id, cached);
+      } else {
+        missing.push(id);
+      }
+    }
+    if (missing.length > 0) {
+      try {
+        const fetched = (await (this.rpc as any).getRawTransactionVerboseBatch(missing)) as any[];
+        for (let i = 0; i < missing.length; i++) {
+          const id = missing[i];
+          const val = fetched[i];
+          if (!val) continue;
+          result.set(id, val);
+          this._prevTxCache.set(id, val);
+          if (this._prevTxCache.size > this._prevTxCacheMax) {
+            const firstIt = this._prevTxCache.keys().next();
+            if (!firstIt.done) this._prevTxCache.delete(firstIt.value as string);
+          }
+        }
+      } catch {
+        // Fallback to individual calls if batch is unsupported
+        for (const id of missing) {
+          try {
+            const val = (await this.rpc.getRawTransactionVerbose(id)) as any;
+            result.set(id, val);
+            this._prevTxCache.set(id, val);
+            if (this._prevTxCache.size > this._prevTxCacheMax) {
+              const firstIt = this._prevTxCache.keys().next();
+              if (!firstIt.done) this._prevTxCache.delete(firstIt.value as string);
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
+    }
+    return result;
   }
 }
 
