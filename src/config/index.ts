@@ -2,6 +2,8 @@ import Ajv from "ajv";
 import addFormats from "ajv-formats";
 import path from "path";
 
+import { normalizeWatchedAddresses } from "@/application/helpers/bitcoin";
+import { getAddressVersionsForNetwork } from "@/infrastructure/bitcoin/raw/Address";
 import {getFileStorage} from "@/infrastructure/storage/FileStorageService";
 
 import {loadEnvFiles} from "./env";
@@ -195,13 +197,22 @@ export function loadConfig(): AppConfig {
     const fileContent = storage.readFile(addressesFile, "utf-8");
     const json = JSON.parse(fileContent);
     if (Array.isArray(json)) {
-      watch = json.filter((x) => typeof x?.address === "string").map((x) => ({
-        address: x.address,
-        label: x.label
-      }));
+      const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
+      // Guess from RPC URL if no explicit network provided
+      let net: any = undefined;
+      if (networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest") {
+        net = networkGuess as any;
+      }
+      const items = json.filter((x) => typeof x?.address === "string").map((x) => ({ address: x.address, label: x.label }));
+      watch = normalizeWatchedAddresses(items, net);
     }
   } catch {
-    watch = parseWatchAddresses(process.env.WATCH_ADDRESSES);
+    const networkGuess = (process.env.BITCOIN_NETWORK || "").toString().trim().toLowerCase();
+    let net: any = undefined;
+    if (networkGuess === "mainnet" || networkGuess === "testnet" || networkGuess === "signet" || networkGuess === "regtest") {
+      net = networkGuess as any;
+    }
+    watch = normalizeWatchedAddresses(parseWatchAddresses(process.env.WATCH_ADDRESSES), net);
   }
   return {
     bitcoinRpcUrl,

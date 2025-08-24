@@ -1,3 +1,5 @@
+import type { Network } from "@/infrastructure/bitcoin/raw/Address";
+import { validateAndNormalizeAddress } from "@/infrastructure/bitcoin/raw/Address";
 import { logger } from "@/infrastructure/logger";
 import type { AddressActivity, ParsedBlock } from "@/types/blockchain";
 
@@ -46,4 +48,18 @@ export function logOpReturnData(block: ParsedBlock): void {
   }
 }
 
+
+export function normalizeWatchedAddresses(
+  list: { address: string; label?: string }[],
+  network?: Network
+): { address: string; label?: string }[] {
+  const out: { address: string; label?: string }[] = [];
+  for (const item of list) {
+    const addr = (item.address || "").trim();
+    if (!addr) continue;
+    const { normalized } = validateAndNormalizeAddress(addr, network);
+    out.push({ address: normalized, label: item.label });
+  }
+  return out;
+}
 

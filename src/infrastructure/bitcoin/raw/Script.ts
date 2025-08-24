@@ -104,4 +104,35 @@ function decodePushAt(script: Buffer, index: number): Buffer | undefined {
   return undefined;
 }
 
+// Redeem script classifiers (for inputs): detect nested SegWit (P2SH-P2WPKH/P2WSH)
+export type RedeemScriptType = "p2wpkh" | "p2wsh" | "unknown";
+
+export function classifyRedeemScript(script: Buffer): RedeemScriptType {
+  // P2WPKH redeem: 0x00 0x14 <20>
+  if (script.length === 22 && script[0] === 0x00 && script[1] === 0x14) return "p2wpkh";
+  // P2WSH redeem: 0x00 0x20 <32>
+  if (script.length === 34 && script[0] === 0x00 && script[1] === 0x20) return "p2wsh";
+  return "unknown";
+}
+
+// Taproot witness basics: classify key-path vs script-path using witness stack layout
+// witness is an array of stack items as Buffers, in order they appear on wire
+export type TaprootWitnessKind = "keypath" | "scriptpath" | "unknown";
+
+export function classifyTaprootWitnessBasic(witness: Buffer[]): TaprootWitnessKind {
+  if (!Array.isArray(witness) || witness.length === 0) return "unknown";
+  // Script path should include a control block as the last stack element (per BIP341)
+  // where control block length is 33 + 32*m with first byte having bit 0 indicating parity and top bits encoding leaf version.
+  // Minimal check: last element length >= 33 and first byte & 0x80 is set (0xc0 typical for tapscript v0xc0)
+  const last = witness[witness.length - 1];
+  if (last && last.length >= 33) {
+    const b0 = last[0];
+    const isControlBlock = (b0 & 0x80) === 0x80; // high bit set for BIP341 control blocks
+    if (isControlBlock) return "scriptpath";
+  }
+  // Key path typically has a single 64/65-byte Schnorr signature (with optional annex ignored)
+  if (witness.length === 1 && (witness[0].length === 64 || witness[0].length === 65)) return "keypath";
+  return "unknown";
+}
+
 
