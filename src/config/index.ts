@@ -48,6 +48,32 @@ function parseWatchAddresses(raw: string | undefined): { address: string; label?
 }
 
 export function loadConfig(): AppConfig {
+  const smoke = (() => {
+    const raw = (process.env.SMOKE_TEST || "").toString().trim().toLowerCase();
+    return raw === "1" || raw === "true" || raw === "yes";
+  })();
+  if ( smoke ) {
+    const cwd = process.cwd();
+    return {
+      bitcoinRpcUrl: "http://localhost:8332",
+      pollIntervalMs: 1000,
+      resolveInputAddresses: false,
+      parseRawBlocks: false,
+      maxEventQueueSize: 100,
+      worker: { id: "worker-1", members: [ "worker-1" ] },
+      watch: [],
+      watchAddressesFile: `${ cwd }/addresses.json`,
+      environment: (process.env.APP_ENV || process.env.NODE_ENV || "production").toString().trim(),
+      serviceName: (process.env.LOG_SERVICE_NAME || "btc-transaction-scanner-bot").toString().trim(),
+      logLevel: (process.env.LOG_LEVEL || "info").toString().trim(),
+      logPretty: false,
+      coinMarketCapApiKey: "",
+      sinks: {
+        enabled: [ "stdout" ],
+        stdout: { pretty: false },
+      },
+    };
+  }
   loadEnvFiles();
   // Zod schema for process.env
   const envSchema = z.object( {

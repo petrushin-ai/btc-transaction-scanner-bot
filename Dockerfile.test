@@ -5,19 +5,21 @@ ENV NODE_ENV=production \
 
 WORKDIR /app
 
-# Create non-root user
+# Create non-root user matching runtime container
 RUN addgroup -g 10001 app \
   && adduser -D -G app -u 10001 app \
   && mkdir -p /app/cache /app/logs
 
 COPY package.json tsconfig.json addresses.json ./
-RUN bun install --ci
+RUN bun install
+
 COPY src ./src
+COPY test ./test
 
-# Fix ownership for runtime write dirs
 RUN chown -R app:app /app
-
 USER app
 
-# Run the app directly (skip prestart hooks like lint in prod)
-CMD ["bun", "src/index.ts"]
+# Default to running test suite inside container
+CMD ["bun", "test", "--timeout=15000", "--preload", "test/setup.metrics.ts"]
+
+

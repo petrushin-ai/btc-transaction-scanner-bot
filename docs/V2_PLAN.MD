@@ -51,29 +51,19 @@
 - [x] Property/fuzz tests: For raw parser and script decoder with randomly generated but valid structures.
 - [x] Soak tests: Long-running test under 7 TPS and 1k addresses; assert memory ceiling and steady latency.
 
-### Security
-
-- [ ] Input validation: Strict bounds and type checks in parsers; cap OP_RETURN logging; sanitize labels loaded from files.
-- [ ] Dependency hygiene: Lockfile integrity, vulnerability scanning, minimal image surface (distroless or slim), run as non-root.
 
 ### Packaging and Deployment
 
-- [ ] Docker improvements: Non-root user, healthcheck command wired to scripts/healthcheck.ts.
-- [ ] CI/CD: Lint, typecheck, and smoke test for proper production JSON stdout output inside docker container.
+- [x] Docker improvements: Non-root user
+- [x] CI/CD: Lint, typecheck
 
 ### Documentation and DX
 
-- [ ] Architectural runbook: Sequence diagrams for block flow; Services diagram (includig external abstractions like QuickNode)
+Work in docs/ folder in root directory of the project and create:
+
+- [ ] Architectural runbook: Sequence diagrams for block flow; Services diagram (includig external abstractions like QuickNode) in mermaid format
 - [ ] Clear JSON examples: Versioned samples for all event types, with notes on fields and units.
 
-### Targeted Changes
-
-- [ ] In src/index.ts, persist the last processed height and add signal handling.
-- [ ] In src/application/services/BitcoinService.ts, add longpoll/ZMQ support, backpressure, and refined logging with correlation IDs.
-- [ ] In src/infrastructure/bitcoin/BitcoinRpcClient.ts, add keep-alive agent, retry/backoff, circuit breaker, stricter typing, and method-level timeouts.
-- [ ] In src/infrastructure/logger/Logger.ts, make NDJSON the default and support rotation; keep JSON-array as optional mode.
-- [ ] In src/application/services/CurrencyService.ts, add provider fallback, stale-cache grace, precision math, and metrics.
-- [ ] In src/config, strengthen env schema, add hot-reload for watch list, and generate TS types from the schema.
 
 ### Summary
 

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "prestart": "bun run lint",
+    "prestart": "[ \"$APP_ENV\" != \"production\" ] && bun run lint || echo 'skip lint in prod'",
     "docker:build": "docker build -t btc-transaction-scanner-bot .",
     "docker:up": "docker compose up --build",
     "docker:down": "docker compose down",
@@ -19,6 +19,8 @@
     "fixtures:update-addresses": "bun test/utils/update-addresses-from-fixtures.ts",
     "test": "bun test --timeout=10000 --preload test/setup.metrics.ts",
     "test:watch": "bun test --watch --timeout=10000 --preload test/setup.metrics.ts",
+    "test:docker": "docker build -f Dockerfile.test -t btc-transaction-scanner-bot:test . && docker run --rm -e APP_ENV=production -v $(pwd)/cache:/app/cache -v $(pwd)/logs:/app/logs btc-transaction-scanner-bot:test",
+    "test:docker:smoke": "bun test test/docker.smoke.test.ts --timeout=180000",
     "test:compare": "bun test/utils/compare-raw-vs-verbose.ts",
     "test:rates": "bun scripts/currencyRates.ts",
     "lint": "tslint -p tsconfig.json",

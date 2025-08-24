@@ -47,7 +47,7 @@ class MockRpc extends BitcoinRpcClient {
   }
 }
 
-async function main() {
+export async function measureLatency() {
   const block: ParsedBlock = {
     hash: "h",
     height: 100,
@@ -63,13 +63,16 @@ async function main() {
   setTimeout( () => rpc.advanceToNextBlock(), 200 );
   await svc.awaitNewBlock( startHeight );
   const latencyMs = Date.now() - t0;
-
-  console.log( JSON.stringify( { suite: "proc-latency", latencyMs } ) );
+  return { suite: "proc-latency", latencyMs };
 }
 
-main().catch( (err) => {
-  console.error( String( err?.message || err ) );
-  process.exit( 1 );
-} );
+if (import.meta.main) {
+  measureLatency().then((data) => {
+    console.log(JSON.stringify(data));
+  }).catch((err) => {
+    console.error(String((err as any)?.message || err));
+    process.exit(1);
+  });
+}
 
 

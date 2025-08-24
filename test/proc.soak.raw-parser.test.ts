@@ -1,21 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { execFileSync } from "child_process";
-import path from "path";
 
+import { runSoak } from "./runners/run-soak";
 import { emitMetric } from "./_metrics";
 
 describe( "Process-level soak (10 TPS, 1k addresses)", () => {
-  test( "runs for configured duration and asserts memory ceiling and steady latency", () => {
-    const scriptPath = path.join( process.cwd(), "scripts", "run-soak.ts" );
-    const output = execFileSync( process.execPath, [ scriptPath ], {
-      encoding: "utf8",
-      env: { ...process.env, SOAK_SECONDS: "10" },
-    } );
-    const lines = output.split( /\n/ ).map( (l) => l.trim() ).filter( Boolean );
-    const jsonLine = [ ...lines ]
-      .reverse()
-      .find( (l) => l.startsWith( "{" ) && l.endsWith( "}" ) ) || "{}";
-    const data = JSON.parse( jsonLine ) as {
+  test( "runs for configured duration and asserts memory ceiling and steady latency", async () => {
+    const data = await runSoak( 10 ) as {
       suite: string;
       seconds: number;
       tpsTarget: number;

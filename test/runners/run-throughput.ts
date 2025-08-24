@@ -21,12 +21,11 @@ function median(nums: number[]): number {
   return a[mid];
 }
 
-async function main() {
+export function measureThroughput(iterationsInput?: number) {
   const fixturesDir = path.join( process.cwd(), "test", "fixtures" );
   const entries = fs.readdirSync( fixturesDir ).filter( (f) => f.endsWith( "-current.raw" ) );
   if ( entries.length === 0 ) {
-    console.error( "No *.raw fixtures found" );
-    process.exit( 2 );
+    throw new Error( "No *.raw fixtures found" );
   }
   entries.sort( (a, b) => Number( b.split( "-" )[1] ) - Number( a.split( "-" )[1] ) );
   const rawPath = path.join( fixturesDir, entries[0] );
@@ -35,7 +34,7 @@ async function main() {
   // Warm up parse once
   Raw.parseRawBlock( hex, "mainnet" );
 
-  const iterations = Number( process.env.THROUGHPUT_RUNS || 50 );
+  const iterations = Number(iterationsInput ?? process.env.THROUGHPUT_RUNS ?? 50);
   const times: number[] = [];
   let totalTx = 0;
   for ( let i = 0; i < iterations; i++ ) {
@@ -66,12 +65,16 @@ async function main() {
     tpsMedian: Math.round( tpsMedian ),
     tpsP95: Math.round( tpsP95 ),
   };
-  console.log( JSON.stringify( out ) );
+  return out;
 }
-
-main().catch( (err) => {
-  console.error( String( err?.message || err ) );
-  process.exit( 1 );
-} );
+if (import.meta.main) {
+  try {
+    const data = measureThroughput();
+    console.log(JSON.stringify(data));
+  } catch (err) {
+    console.error(String((err as any)?.message || err));
+    process.exit(1);
+  }
+}
 
 
