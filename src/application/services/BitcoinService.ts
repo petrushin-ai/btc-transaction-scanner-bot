@@ -10,10 +10,14 @@ import type {
 } from "@/types/blockchain";
 import type {HealthResult} from "@/types/healthcheck";
 
+import type { FeatureFlags } from "./FeatureFlagsService";
+import { FeatureFlagsService } from "./FeatureFlagsService";
+
 export type BitcoinServiceOptions = {
   pollIntervalMs?: number;
   resolveInputAddresses?: boolean;
   parseRawBlocks?: boolean;
+  flagsService?: FeatureFlagsService;
 };
 
 export class BitcoinService implements BlockchainService {
@@ -21,6 +25,7 @@ export class BitcoinService implements BlockchainService {
   private pollIntervalMs: number;
   private resolveInputAddresses: boolean;
   private parseRawBlocks: boolean;
+  private flagsService?: FeatureFlagsService;
   private network: Raw.Network = "mainnet";
   private verbose: boolean = false;
   private log: AppLogger;
@@ -39,8 +44,14 @@ export class BitcoinService implements BlockchainService {
     this.pollIntervalMs = opts?.pollIntervalMs ?? 1000;
     this.resolveInputAddresses = opts?.resolveInputAddresses ?? false;
     this.parseRawBlocks = opts?.parseRawBlocks ?? false;
+    this.flagsService = opts?.flagsService;
     this.verbose = false;
     this.log = logger("bitcoin_service");
+  }
+
+  private getFlags(): FeatureFlags {
+    if (this.flagsService) return this.flagsService.getFlags();
+    return { parseRawBlocks: this.parseRawBlocks, resolveInputAddresses: this.resolveInputAddresses };
   }
 
   private isDevelopment(): boolean {
@@ -122,7 +133,8 @@ export class BitcoinService implements BlockchainService {
   }
 
   async parseBlockByHash(blockHash: string): Promise<ParsedBlock> {
-    if (!this.parseRawBlocks) {
+    const flags = this.getFlags();
+    if (!flags.parseRawBlocks) {
       const block = (await this.rpc.getBlockByHashVerbose2(blockHash)) as any;
       return {
         hash: block.hash,
@@ -154,7 +166,7 @@ export class BitcoinService implements BlockchainService {
       })),
     };
     // resolve inputs if configured
-    if (this.resolveInputAddresses) {
+    if (flags.resolveInputAddresses) {
       // Collect unique prevTxIds across this block
       const needSet = new Set<string>();
       for (const rtx of rawParsed.transactions) {
@@ -319,7 +331,8 @@ export class BitcoinService implements BlockchainService {
   private async parseTransactions(rawTxs: any[]): Promise<ParsedTransaction[]> {
     const parsed: ParsedTransaction[] = [];
     let prevMap: Map<string, any> | undefined;
-    if (this.resolveInputAddresses) {
+    const flags = this.getFlags();
+    if (flags.resolveInputAddresses) {
       const need = new Set<string>();
       for (const tx of rawTxs) {
         for (const vin of (tx.vin as any[])) {
@@ -363,7 +376,7 @@ export class BitcoinService implements BlockchainService {
       });
 
       const inputs: { address?: string; valueBtc?: number }[] = [];
-      if (this.resolveInputAddresses) {
+      if (flags.resolveInputAddresses) {
         for (const vin of tx.vin as any[]) {
           if (vin.coinbase) {
             inputs.push({});

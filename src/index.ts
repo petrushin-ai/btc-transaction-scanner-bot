@@ -1,5 +1,6 @@
 import { BTC, USD } from "@/application/constants";
 import { BitcoinService, CurrencyService, EventService, HealthCheckService } from "@/application/services";
+import { FeatureFlagsService } from "@/application/services/FeatureFlagsService";
 import { registerEventPipeline } from "@/application/services/Pipeline";
 import { loadConfig } from "@/config";
 import { BitcoinRpcClient } from "@/infrastructure/bitcoin";
@@ -13,10 +14,21 @@ async function main() {
     logger.info({ type: "init", mode: "production", msg: "Starting in production mode" });
   }
   const rpc = new BitcoinRpcClient({ url: cfg.bitcoinRpcUrl });
+  const flags = new FeatureFlagsService(
+    {
+      parseRawBlocks: cfg.parseRawBlocks,
+      resolveInputAddresses: cfg.resolveInputAddresses,
+    },
+    {
+      filePath: process.env.FEATURE_FLAGS_FILE,
+      reloadIntervalMs: process.env.FEATURE_FLAGS_RELOAD_MS ? Number(process.env.FEATURE_FLAGS_RELOAD_MS) : undefined,
+    }
+  );
   const btc = new BitcoinService(rpc, {
     pollIntervalMs: cfg.pollIntervalMs,
     resolveInputAddresses: cfg.resolveInputAddresses,
     parseRawBlocks: cfg.parseRawBlocks,
+    flagsService: flags,
   });
   const events = new EventService({ maxQueueSize: cfg.maxEventQueueSize });
   const cmcClient = new CoinMarketCapClient({

@@ -34,9 +34,11 @@ APP_ENV=development
 BTC_RPC_API_URL=http://localhost:8332
 # Currency (optional, enables USD):
 API_KEY_COINMARKETCAP=your_key
-# Optional features
+# Optional features (see Feature Flags section)
 # PARSE_RAW_BLOCKS=true
 # RESOLVE_INPUT_ADDRESSES=true
+# FEATURE_FLAGS_FILE=./feature-flags.json
+# FEATURE_FLAGS_RELOAD_MS=2000
 ```
 
 ## Prerequisites
@@ -74,6 +76,8 @@ Variables (with defaults and purpose):
   - Backpressure knob for the internal event bus. When the pending events reach this size, publishers will wait until the queue drains.
 - `RESOLVE_INPUT_ADDRESSES` (`true|false`, default: `false`)
   - When `true`, resolves input addresses by fetching previous transactions. Enables detection of outgoing ("out") activities but increases RPC calls.
+- `PARSE_RAW_BLOCKS` (`true|false`, default: `false`)
+  - When `true`, uses custom raw block/tx parser behind `getblock(hash, 0)` for higher performance and more control over OP_RETURN/script handling. Otherwise uses verbose JSON from `getblock(hash, 2)`.
 - `WATCH_ADDRESSES_FILE` (default: `./addresses.json`)
   - Path to a JSON file containing an array of `{ address, label? }` to watch. Used as the primary source. Loaded via `FileStorageService`.
 - `WATCH_ADDRESSES` (optional)
@@ -354,6 +358,29 @@ Supported script types:
 - `nulldata` (OP_RETURN) – extracts payload hex and best‑effort UTF‑8
 
 Network is detected from `getblockchaininfo.chain` and passed into address encoding.
+
+## Feature Flags (centralized, runtime-refreshable)
+
+Two feature flags control parsing and input resolution:
+
+- `parseRawBlocks`: toggles raw block/tx parsing path
+- `resolveInputAddresses`: toggles prevout lookups to derive input addresses/values
+
+These are sourced from environment variables on startup and centralized via `FeatureFlagsService`. You can override at runtime by providing a JSON file and enabling live reload.
+
+- `FEATURE_FLAGS_FILE`: path to JSON file with flags
+- `FEATURE_FLAGS_RELOAD_MS`: polling interval for reload (ms), default 2000
+
+Example `feature-flags.json`:
+
+```json
+{
+  "parseRawBlocks": true,
+  "resolveInputAddresses": false
+}
+```
+
+When the file changes, the service hot‑updates flags without restarting the process. `BitcoinService` reads flags dynamically on each block/tx parse.
 
 ## USD equity calculation
 
