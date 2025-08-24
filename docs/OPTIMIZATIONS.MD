@@ -83,9 +83,11 @@
 - **Effect**: Safer parsing (prevents out-of-bounds reads) with unchanged behavior and performance; all tests pass. Zero-copy characteristics maintained for scripts and witness data.
 
 ## Measured outcomes (local runs)
-- throughput `max_measured_tps`: ~31k → ~37k (noise exists, but trend improved after parser/caching tweaks)
+- throughput `peak_ramp_avg_tps_2s`: ~31k → ~37k (noise exists, but trend improved after parser/caching tweaks)
 - raw‑parser `parse_block_ms`: ~1 ms → ~1 ms (unchanged; already fast)
 - raw‑parser `mem_max_mb`: previously misreported; now ~97–98 MB with reduced allocations
+
+Note: `peak_ramp_avg_tps_2s` is the best average TPS across short ramp runs; `max_block_tps_100s` is the single fastest block TPS observed in a 100s sustained run, and may be higher than the ramp average. `max_measured_tps` is the canonical per-block instantaneous peak (identical in value to `max_block_tps_100s` during the 100s run) and is listed first in the throughput summary for quick reference.
 
 ## Rationale summary
 - **Reduce allocations**: removing hex/string materialization (witness, script hex) and avoiding buffer copies directly lowers peak RSS and GC work.

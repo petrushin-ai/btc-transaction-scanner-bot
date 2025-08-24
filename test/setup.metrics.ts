@@ -51,7 +51,26 @@ function printPretty(metrics: Metric[]): void {
         // eslint-disable-next-line no-console
         console.log(color(`\n  ${s}`, "magenta"));
         const rows = (bySuite.get(s) || []).slice();
-        rows.sort((a, b) => a.name.localeCompare(b.name));
+        if (s === "throughput") {
+            const priority: Record<string, number> = {
+                "max_measured_tps": 0,
+                "peak_ramp_avg_tps_2s": 1,
+                "avg_measured_tps_10s": 2,
+                "avg_measured_tps_100s": 3,
+                "median_block_tps_100s": 4,
+                "p95_block_tps_100s": 5,
+                "stddev_block_tps_100s": 6,
+                "max_block_tps_100s": 7,
+            };
+            rows.sort((a, b) => {
+                const pa = priority[a.name] ?? 999;
+                const pb = priority[b.name] ?? 999;
+                if (pa !== pb) return pa - pb;
+                return a.name.localeCompare(b.name);
+            });
+        } else {
+            rows.sort((a, b) => a.name.localeCompare(b.name));
+        }
         for (const m of rows) {
             const left = color(`    ${m.name}`, "green");
             const right = `${m.value} ${m.unit}`.trim();

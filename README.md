@@ -312,8 +312,14 @@ Metrics Summary (4 metrics)
 
   scalability
     process_7tps_10s_total_ms => 59 ms  [totalActivities=70]
-    max_measured_tps => 9 tps
+    peak_ramp_avg_tps_2s => 9 tps
 ```
+
+Notes on throughput metrics:
+- max_measured_tps: highest instantaneous per-block TPS observed (printed first under throughput).
+- peak_ramp_avg_tps_2s: highest average TPS measured over short 2s ramps across levels.
+- avg_measured_tps_10s: average TPS over a fixed 10s run at high load.
+- avg_measured_tps_100s, median_block_tps_100s, p95_block_tps_100s, stddev_block_tps_100s: stats from a 100s sustained run; max_block_tps_100s captures the single-fastest block TPS in that run.
 
 CI-friendly JUnit report (optional):
 

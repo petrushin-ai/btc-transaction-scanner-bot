@@ -104,7 +104,7 @@ describe("Throughput (TPS) load test", () => {
       expect(processedTx).toBe(expectedTx);
     }
 
-    emitMetric({ suite: "throughput", name: "max_measured_tps", value: Math.round(maxMeasured), unit: "tps" });
+    emitMetric({ suite: "throughput", name: "peak_ramp_avg_tps_2s", value: Math.round(maxMeasured), unit: "tps" });
 
     // Additionally, measure average TPS over a 10s window at a fixed high load
     {
@@ -167,11 +167,16 @@ describe("Throughput (TPS) load test", () => {
       const mean = perBlockTps.reduce((a, v) => a + v, 0) / n;
       const variance = perBlockTps.reduce((a, v) => a + (v - mean) * (v - mean), 0) / n;
       const stddev = Math.sqrt(variance);
+      const maxBlockTps = Math.max(...perBlockTps);
+
+      // Real max TPS observed (per-block instantaneous peak)
+      emitMetric({ suite: "throughput", name: "max_measured_tps", value: Math.round(maxBlockTps), unit: "tps" });
 
       emitMetric({ suite: "throughput", name: "avg_measured_tps_100s", value: Math.round(avgTps), unit: "tps" });
       emitMetric({ suite: "throughput", name: "median_block_tps_100s", value: Math.round(median), unit: "tps" });
       emitMetric({ suite: "throughput", name: "p95_block_tps_100s", value: Math.round(p95), unit: "tps" });
       emitMetric({ suite: "throughput", name: "stddev_block_tps_100s", value: Math.round(stddev), unit: "tps" });
+      emitMetric({ suite: "throughput", name: "max_block_tps_100s", value: Math.round(maxBlockTps), unit: "tps" });
     }
 
     // Baseline assertion: ensure at least ~7 TPS capacity under 1000 watched addresses
