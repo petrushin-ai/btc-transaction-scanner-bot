@@ -9,8 +9,8 @@ Assesment job - Bun + TypeScript
 - **Docker build (image)**: `bun run docker:build`
 - **Docker Compose (prod-like)**:
   - Up: `bun run docker:up`
-  - Logs: `bun run docker:logs`
   - Down: `bun run docker:down`
+  - Logs: `bun run docker:logs`
 - **Docker Compose (dev, live reload)**:
   - Up: `bun run docker:dev:up`
   - Down: `bun run docker:dev:down`
