@@ -1,0 +1,5 @@
+[test]
+preload = ["./test/setup.metrics.ts", "./test/setup.fixtures.ts", "./test/setup.service.ts"]
+timeout = 10000
+
+

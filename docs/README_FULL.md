@@ -1,0 +1,632 @@
+# BTC Transaction-scanner Bot (TypeScript)
+
+Assesment job - Bun + TypeScript
+
+## Quick start from clone (addresses.json is gitignored)
+
+Follow these steps to run the bot end-to-end after cloning the repo. Since `addresses.json` is intentionally in `.gitignore`, you must create it locally before starting.
+
+1) Clone and enter the project
+
+```bash
+git clone <repo-url> btc-transaction-scanner-bot
+cd btc-transaction-scanner-bot
+```
+
+2) Create a minimal .env
+
+```bash
+cp .env.scripts .env || true
+echo "APP_ENV=development" >> .env
+echo "BTC_RPC_API_URL=https://rpc-alias.btc-testnet.quiknode.pro/your-id" >> .env
+# Optional (enables USD amounts):
+# echo "API_KEY_COINMARKETCAP=your_key" >> .env
+# Optional flags:
+# echo "PARSE_RAW_BLOCKS=true" >> .env
+# echo "RESOLVE_INPUT_ADDRESSES=true" >> .env
+```
+
+3) Create `addresses.json` (gitignored) at project root
+
+```json
+[
+  { "address": "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxx", "label": "wallet-1" },
+  { "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX", "label": "wallet-2" }
+]
+```
+
+Optional: generate `addresses.json` from fixtures
+
+```bash
+bun run fixtures:update-addresses
+```
+
+4) Start locally with Bun
+
+```bash
+bun install
+bun run start
+# or: bun run dev  # live-reload
+```
+
+— or —
+
+5) Run with Docker (single container)
+
+```bash
+bun run docker:build
+docker run --rm \
+  --env-file .env \
+  -v $(pwd)/addresses.json:/app/addresses.json:ro \
+  -v $(pwd)/cache:/app/cache \
+  -v $(pwd)/logs:/app/logs \
+  btc-transaction-scanner-bot
+```
+
+— or —
+
+6) Run with Docker Compose (recommended)
+
+Ensure `addresses.json` exists at project root (Compose mounts `./addresses.json:/app/addresses.json`). Then:
+
+```bash
+# Prod-like run
+bun run docker:up
+# tail logs
+bun run docker:logs
+# stop
+bun run docker:down
+
+# Dev with live reload (mounts project)
+bun run docker:dev:up
+# stop
+bun run docker:dev:down
+```
+
+Notes:
+
+- If you prefer not to use a file, you can supply addresses via the `WATCH_ADDRESSES` env var (CSV: `address[:label],address[:label],...`). File path is configurable via `WATCH_ADDRESSES_FILE` (default `./addresses.json`).
+- Set `BTC_RPC_API_URL` to any Bitcoin Core–compatible RPC endpoint (local node or a provider). Basic auth can be set with `BITCOIN_RPC_USER`/`BITCOIN_RPC_PASSWORD`.
+
+## Essential: scripts and options
+
+- **Local dev (watch mode)**: `bun run dev` — runs `bun --watch src/index.ts`
+- **Run once (local)**: `bun run start` — runs `bun src/index.ts`
+- **Docker build (image)**: `bun run docker:build`
+- **Docker Compose (prod-like)**:
+  - Up: `bun run docker:up`
+  - Down: `bun run docker:down`
+  - Logs: `bun run docker:logs`
+- **Docker Compose (dev, live reload)**:
+  - Up: `bun run docker:dev:up`
+  - Down: `bun run docker:dev:down`
+- **Tests**:
+  - Run suite: `bun run test`
+  - Watch mode: `bun run test:watch`
+- **Scripts**:
+  - Healthcheck: `bun run healthcheck`
+  - Currency rates example: `bun run example:rates`
+  - Fetch block fixtures: `bun run fixtures:get-blocks`
+  - Update watched addresses from fixtures: `bun run fixtures:update-addresses`
+  - Compare raw vs verbose data: `bun run test:compare`
+- **Linting**:
+  - Check: `bun run lint`
+  - Fix: `bun run lint:fix`
+
+Minimal .env to get started (see detailed list below):
+
+```bash
+APP_ENV=development
+BTC_RPC_API_URL=http://localhost:8332
+# Currency (optional, enables USD):
+API_KEY_COINMARKETCAP=your_key
+# Optional features (see Feature Flags section)
+# PARSE_RAW_BLOCKS=true
+# RESOLVE_INPUT_ADDRESSES=true
+# FEATURE_FLAGS_FILE=./feature-flags.json
+# FEATURE_FLAGS_RELOAD_MS=2000
+```
+
+## Prerequisites
+
+- Bun runtime (`bun --version`) – optional for local run
+- Docker (`docker --version`) – required for container run
+
+## Run locally
+
+```bash
+bun src/index.ts
+```
+
+Or with the package script:
+
+```bash
+bun run start
+```
+
+## Repository statistics
+
+- Lines of code (ts, yml, sh, tsconfig.json, tslint.json): 7,266
+- Excludes `node_modules`, `.git`, `logs`.
+- Reproduce:
+
+```bash
+find . -type f \( -name "*.ts" -o -name "*.yml" -o -name "*.sh" -o -name "tsconfig.json" -o -name "tslint.json" \) -not -path "./node_modules/*" -not -path "./.git/*" -not -path "./logs/*" -print0 | xargs -0 wc -l | tail -n1
+```
+
+## Environment variables
+
+The app loads env files in this order (later overrides earlier): `.env`, `.env.local`, `.env.<env>`, `.env.<env>.local` where `<env>` is `NODE_ENV` or `APP_ENV` (default `development`).
+
+Variables (with defaults and purpose):
+
+- `BTC_RPC_API_URL` (default: `http://localhost:8332`)
+  - Full URL of Bitcoin Core JSON-RPC endpoint (`http(s)://host:port`).
+- `BITCOIN_RPC_USER` (optional)
+  - RPC username if node requires basic auth.
+- `BITCOIN_RPC_PASSWORD` (optional)
+  - RPC password if node requires basic auth.
+- `BTC_POLL_INTERVAL_MS` (default: `1000`)
+  - Interval in milliseconds between checks for a new block. Lower values reduce detection latency but increase RPC load.
+- `MAX_EVENT_QUEUE_SIZE` (default: `2000`)
+  - Backpressure knob for the internal event bus. When the pending events reach this size, publishers will wait until the queue drains.
+- `RESOLVE_INPUT_ADDRESSES` (`true|false`, default: `false`)
+  - When `true`, resolves input addresses by fetching previous transactions. Enables detection of outgoing ("out") activities but increases RPC calls.
+- `PARSE_RAW_BLOCKS` (`true|false`, default: `false`)
+  - When `true`, uses custom raw block/tx parser behind `getblock(hash, 0)` for higher performance and more control over OP_RETURN/script handling. Otherwise uses verbose JSON from `getblock(hash, 2)`.
+- `WATCH_ADDRESSES_FILE` (default: `./addresses.json`)
+  - Path to a JSON file containing an array of `{ address, label? }` to watch. Used as the primary source. Loaded via `FileStorageService`.
+- `WATCH_ADDRESSES` (optional)
+  - CSV fallback used only if `WATCH_ADDRESSES_FILE` is missing/unreadable. Format: `address[:label],address[:label],...`.
+
+### Logger
+
+- `APP_ENV` or `NODE_ENV` (default: `development`)
+  - Environment name; affects which `.env.*` files load and logger defaults.
+- `LOG_LEVEL` (default: `trace` in `development`, otherwise `info`)
+  - Log verbosity level (e.g., `trace`, `debug`, `info`, `warn`, `error`).
+- `LOG_PRETTY` (`true|false`, default: `true` in `development`, otherwise `false`)
+  - Pretty-print logs for human readability (stdout only). File logs remain machine-friendly.
+- `LOG_SERVICE_NAME` (default: `btc-transaction-scanner-bot`)
+  - Service name injected into logs.
+
+#### File output format
+
+By default, file logs are written as NDJSON (newline-delimited JSON) which is logrotate-friendly and easy to stream. Files use the `.ndjson` extension (e.g., `logs/output.ndjson`, `logs/<custom>.ndjson`). If you prefer a single JSON array file for easy `JSON.parse`, pass `{ ndjson: false }` when obtaining a logger; files will use the `.json` extension and remain valid arrays at all times.
+
+Examples:
+
+```ts
+import { getLogger } from "./src/infrastructure/logger";
+import { getFileStorage } from "./src/infrastructure";
+
+// Default: NDJSON files (logs/output.ndjson)
+const logger = getLogger();
+logger.info( { hello: "world" } );
+
+// Named file with default NDJSON behavior -> logs/my-task.ndjson
+const taskLogger = getLogger( { fileName: "my-task" } );
+taskLogger.info( { step: 1 } );
+
+// JSON array mode for files (writes to logs/stream.json)
+const arrayLogger = getLogger( { fileName: "stream", ndjson: false } );
+arrayLogger.info( { event: "start" } );
+```
+
+### File storage abstraction
+
+All filesystem interactions are routed through `FileStorageService` to keep IO concerns decoupled.
+
+- Logger file destinations use the storage abstraction for safe array-JSON writes.
+- Currency cache (`cache/currency_rates.json`) reads/writes via the storage service.
+- Config address loading (`WATCH_ADDRESSES_FILE`) uses the storage service.
+
+You can access the default implementation via:
+
+```ts
+import { getFileStorage } from "./src/infrastructure";
+
+const storage = getFileStorage();
+if ( storage.fileExists( "addresses.json" ) ) {
+  const json = JSON.parse( storage.readFile( "addresses.json", "utf-8" ) );
+}
+```
+
+### Currency
+
+- `API_KEY_COINMARKETCAP` (required)
+  - CoinMarketCap API key used by the currency provider client.
+- `CUR_CACHE_VALIDITY_PERIOD` (seconds, default: `3600`)
+  - Cache TTL for currency pairs; fresh network requests are skipped while cached entries are valid.
+
+Notes:
+
+- Currency rates are cached per provider/pair at `./cache/currency_rates.json`.
+- Cache keys are namespaced by provider (e.g., `coinmarketcap`) and pair (e.g., `BTC_USDT`).
+
+Examples:
+
+```bash
+cp .env.scripts .env
+echo "APP_ENV=development" >> .env
+echo "LOG_PRETTY=true" >> .env
+echo "LOG_LEVEL=trace" >> .env
+```
+
+## Build & run with Docker
+
+```bash
+docker build -t btc-transaction-scanner-bot .
+# pass envs explicitly
+docker run --rm \
+  -e BTC_RPC_API_URL=http://host.docker.internal:8332 \
+  -e BITCOIN_RPC_USER=rpcuser \
+  -e BITCOIN_RPC_PASSWORD=rpcpass \
+  -v $(pwd)/addresses.json:/app/addresses.json:ro \
+  btc-transaction-scanner-bot
+
+# or use an env file
+docker run --rm --env-file .env btc-transaction-scanner-bot
+
+## Address file format
+
+`addresses.json` at project root (or any path via `WATCH_ADDRESSES_FILE`) contains an array of objects with `address` and optional `label`:
+
+```json
+[
+  { "address": "bc1qexampleaddressxxxxxxxxxxxxxxxxxxxxxx", "label": "wallet-1" },
+  { "address": "1ExampleLegacyAddressXXXXXXXXXXXXXXX", "label": "wallet-2" }
+]
+```
+
+```
+
+## Testing
+
+The project uses Bun's built-in test runner. Performance, latency, and scalability are validated via tests under `tests/`.
+
+Run the full suite (pretty metrics summary will be printed at the end):
+
+```bash
+bun test
+```
+
+Watch mode:
+
+```bash
+bun test --watch
+```
+
+What is covered:
+
+- Raw block parsing performance (time and memory delta)
+- Transaction matching time with 1000 watched addresses
+- Block discovery → processing latency (target ≤ 5s)
+- Scalability: supports 1000 concurrent addresses and sustained 7 TPS
+
+Pretty metrics summary example:
+
+```text
+Metrics Summary (4 metrics)
+
+  latency
+    block_discovery_to_stdout => 203 ms
+
+  matching
+    check_1000_addresses_ms => 2 ms  [activities=0]
+
+  raw-parser
+    mem_max_mb => 46560 MB
+    parse_block_ms => 20 ms  [txCount=1342]
+
+  scalability
+    process_7tps_10s_total_ms => 59 ms  [totalActivities=70]
+    peak_ramp_avg_tps_2s => 9 tps
+```
+
+Notes on throughput metrics:
+
+- max_measured_tps: highest instantaneous per-block TPS observed (printed first under throughput).
+- peak_ramp_avg_tps_2s: highest average TPS measured over short 2s ramps across levels.
+- avg_measured_tps_10s: average TPS over a fixed 10s run at high load.
+- avg_measured_tps_100s, median_block_tps_100s, p95_block_tps_100s, stddev_block_tps_100s: stats from a 100s sustained run; max_block_tps_100s captures the single-fastest block TPS in that run.
+
+CI-friendly JUnit report (optional):
+
+```bash
+bun test --reporter=junit --reporter-outfile=bun.xml
+```
+
+Bun test docs: https://bun.com/docs/cli/test
+
+```
+
+### Docker Compose (recommended)
+
+Compose will proxy variables from your local `.env` file into the container automatically.
+
+Prod-like run:
+
+```bash
+bun run docker:up
+# tail logs
+bun run docker:logs
+# stop
+bun run docker:down
+```
+
+Dev run with live reload (mounts project, runs `bun --watch src/index.ts`):
+
+```bash
+bun run docker:dev:up
+# stop
+bun run docker:dev:down
+```
+
+Service name in Compose is `btc-transaction-scanner-bot`.
+
+Compose proxies these env vars from `.env`:
+
+- `APP_ENV`
+- `BTC_RPC_API_URL`
+- `BTC_POLL_INTERVAL_MS`
+- `MAX_EVENT_QUEUE_SIZE`
+- `RESOLVE_INPUT_ADDRESSES`
+- `CUR_CACHE_VALIDITY_PERIOD`
+- `COINMARKETCAP_BASE_URL`
+- `API_KEY_COINMARKETCAP`
+- `PARSE_RAW_BLOCKS`
+
+## Providers
+
+- Bitcoin RPC provider: QuickNode — see their developer center at `https://www.quicknode.com/docs/developer-center`. Any Bitcoin Core–compatible RPC endpoint is supported; set `BTC_RPC_API_URL` accordingly.
+- Currency rates: CoinMarketCap API — documentation at `https://coinmarketcap.com/api/documentation/v1/`. Provide `API_KEY_COINMARKETCAP` to enable USD equity.
+
+Notes on rates caching:
+
+- Rates are cached per provider/pair under `./cache/currency_rates.json` and controlled by `CUR_CACHE_VALIDITY_PERIOD`.
+- A single BTC→USD rate is fetched per processed block and reused for all activities in that block.
+
+## JSON Notification Format
+
+The bot emits structured JSON events to stdout (and files). Production mode hides noisy debug entries; info-level activity notifications are always emitted.
+
+For full, versioned domain event schemas and examples, see `docs/EVENTS.md`.
+
+- Block summary (debug-level):
+
+```json
+{
+  "type": "block.activities",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txCount": 1342,
+  "activityCount": 3
+}
+```
+
+- Address activity (info-level):
+
+```json
+{
+  "type": "transaction.activity",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txid": "abc123...",
+  "address": "bc1q...",
+  "label": "wallet-1",
+  "direction": "in",
+  "valueBtc": 0.01234567,
+  "valueUsd": 882.34,
+  "opReturnHex": "48656c6c6f20576f726c64",
+  "opReturnUtf8": "Hello World"
+}
+```
+
+- OP_RETURN (debug-level, when present):
+
+```json
+{
+  "type": "transaction.op_return",
+  "blockHeight": 834000,
+  "blockHash": "000000...",
+  "txid": "abc123...",
+  "opReturnHex": "48656c6c6f20576f726c64",
+  "opReturnUtf8": "Hello World"
+}
+```
+
+Notes:
+
+- When both incoming and outgoing operations exist for the same address within a tx, the bot emits the net difference as a single event with `direction` set accordingly and `valueBtc` equal to the absolute net.
+- Outgoing/net detection requires `RESOLVE_INPUT_ADDRESSES=true`.
+
+## Raw block parsing and script interpretation
+
+- Enable via `PARSE_RAW_BLOCKS=true`.
+- Raw path fetches hex with `getblock(hash, 0)` and parses using our custom modules:
+  - `src/infrastructure/bitcoin/raw/ByteReader.ts` – buffered reader and helpers
+  - `src/infrastructure/bitcoin/raw/Address.ts` – Base58Check and Bech32/Bech32m encoders, network versions
+  - `src/infrastructure/bitcoin/raw/Script.ts` – script classification and address derivation
+  - `src/infrastructure/bitcoin/raw/TxParser.ts` – SegWit-aware transaction parser; computes `txid` per BIP-0141
+  - `src/infrastructure/bitcoin/raw/BlockParser.ts` – parses block header and transactions
+
+Supported script types:
+
+- `pubkeyhash` (P2PKH)
+- `scripthash` (P2SH)
+- `witness_v0_keyhash` (P2WPKH)
+- `witness_v0_scripthash` (P2WSH)
+- `witness_v1_taproot` (P2TR)
+- `nulldata` (OP_RETURN) – extracts payload hex and best‑effort UTF‑8
+
+Network is detected from `getblockchaininfo.chain` and passed into address encoding.
+
+## Feature Flags (centralized, runtime-refreshable)
+
+Two feature flags control parsing and input resolution:
+
+- `parseRawBlocks`: toggles raw block/tx parsing path
+- `resolveInputAddresses`: toggles prevout lookups to derive input addresses/values
+
+These are sourced from environment variables on startup and centralized via `FeatureFlagsService`. You can override at runtime by providing a JSON file and enabling live reload.
+
+- `FEATURE_FLAGS_FILE`: path to JSON file with flags
+- `FEATURE_FLAGS_RELOAD_MS`: polling interval for reload (ms), default 2000
+
+Example `feature-flags.json`:
+
+```json
+{
+  "parseRawBlocks": true,
+  "resolveInputAddresses": false
+}
+```
+
+When the file changes, the service hot‑updates flags without restarting the process. `BitcoinService` reads flags dynamically on each block/tx parse.
+
+## USD equity calculation
+
+- Provide `API_KEY_COINMARKETCAP` to enable USD amounts (`valueUsd`).
+- A single BTC→USD rate per processed block is fetched and cached, then applied to all activities in that block.
+
+## Assessment compliance mapping
+
+- Core Requirements
+  - Configuration of addresses and names: `WATCH_ADDRESSES_FILE` (JSON array) or fallback `WATCH_ADDRESSES` CSV. See `src/config/index.ts`.
+  - Post new transactions and info (from/to, amount, USD, tx hash): JSON `transaction.activity` logs with `address`, `direction`, `valueBtc`, `valueUsd`, `txid`.
+  - Technical requirements compliance: validated by tests in `tests/` with metrics summary.
+
+### Pluggable sinks (stdout, file, webhook, Kafka/NATS)
+
+The bot emits notifications for each watched address activity. By default, it logs structured JSON to stdout. You can enable additional sinks via environment variables:
+
+Env vars:
+
+- `SINKS_ENABLED`: comma-separated list of sinks. Defaults to `stdout`.
+  - Supported: `stdout`, `file`, `webhook`, `kafka`, `nats`.
+- `SINK_STDOUT_PRETTY`: `true|false` pretty-print summary to stdout (defaults to pretty in development).
+- `SINK_FILE_PATH`: absolute path to NDJSON file. Example: `/var/log/btc-bot/activities.ndjson`.
+- `SINK_WEBHOOK_URL`: HTTP endpoint for POSTing the full `AddressActivityFound` event
+- `SINK_WEBHOOK_HEADERS`: JSON object of headers (stringified). Example: `{ "Authorization": "Bearer x" }`
+- `SINK_WEBHOOK_MAX_RETRIES`: integer retries on 5xx/network errors (default 3)
+- `SINK_KAFKA_BROKERS`: comma-separated list of broker addresses
+- `SINK_KAFKA_TOPIC`: topic name
+- `SINK_NATS_URL`: server URL
+- `SINK_NATS_SUBJECT`: subject name
+
+Notes:
+
+- Kafka/NATS sinks are shipped as stubs to avoid adding heavy dependencies by default; they log a warning when used.
+- File sink appends NDJSON lines safely via the storage abstraction.
+- Webhook sink retries transient failures with capped backoff.
+- Transaction Notifications
+  - JSON logs to stdout and files; USD equity included when currency service configured.
+  - Mixed in/out operations per tx are netted to a single event.
+- Raw Data Processing
+  - Direct raw block parsing (`PARSE_RAW_BLOCKS=true`) with custom script interpretation; supports legacy and SegWit, OP_RETURN parsing.
+- Technical Requirements
+  - Performance: latency ≤ 5s (see `tests/latency.notification.test.ts`); bounded memory and fast raw parsing (see perf tests).
+  - Scalability: ≥1000 addresses matching and sustained 7 TPS (see `tests/perf.matching-1000.test.ts`, `tests/scalability.tps-7.test.ts`).
+- Restrictions
+  - No explorer APIs; only Bitcoin Core-compatible RPC is used.
+
+## Architecture (high level)
+
+See also:
+
+- [Architectural runbook](docs/ARCHITECTURAL_RUNBOOK.md)
+- [Domain events and JSON examples](docs/EVENTS.md)
+
+Visuals:
+
+![System architecture diagram](docs/architecture.jpg)
+
+![Block flow sequence](docs/block-sequence.png)
+
+- Clean layering:
+  - `src/types` – domain types and interfaces
+  - `src/application` – services (`BitcoinService`, `CurrencyService`, `EventService`, `HealthCheckService`) and helpers; `registerEventPipeline` wires subscriptions
+  - `src/infrastructure` – RPC client, logger, storage, currency client, raw parser
+  - `src/config` – env loading and validation
+- Flow per block (event‑driven): load config → await new block → publish `BlockDetected` → parse (raw or verbose) → publish `BlockParsed` → match watched addresses + annotate with USD → publish `AddressActivityFound` per match → emit `NotificationEmitted`.
+
+### Horizontal scaling: workers & partitioning
+
+- Configure logical workers with env:
+  - `WORKER_ID`: unique id of this worker instance (e.g., `scanner-eu-1`).
+  - `WORKER_MEMBERS`: comma‑separated list of all worker ids participating (e.g., `scanner-eu-1,scanner-eu-2`).
+- We use Rendezvous (Highest Random Weight) consistent hashing to partition the watched‑address space deterministically across workers. Each address is processed by exactly one worker.
+- The `WorkersService` filters `cfg.watch` per worker before matching, enabling linear scaling by adding members.
+
+### At‑least‑once delivery and deduplication
+
+- All domain events now include an optional `dedupeKey` field with a deterministic value, e.g.:
+  - `BlockParsed`: `BlockParsed:<height>:<hash>`
+  - `AddressActivityFound`: `AddressActivity:<height>:<hash>:<address>:<txid>:<direction>`
+  - `NotificationEmitted`: `Notification:<height>:<hash>:<address>:<txid>:<direction>`
+- Downstream sinks/consumers can use `dedupeKey` for idempotent processing and at‑least‑once semantics.
+
+## Event bus and pipeline
+
+The bot is orchestrated by a lightweight in‑memory event bus (`EventService`) and an explicit pipeline (`registerEventPipeline` in `src/application/services/Pipeline.ts`). This makes the flow composable, testable, and easy to extend with new subscribers.
+
+- **Event types** (`src/types/events.ts`):
+  - `BlockDetected` → new block header/hash discovered
+  - `BlockParsed` → full block parsed (raw or verbose)
+  - `AddressActivityFound` → a watched address had activity in a tx (already netted and USD‑annotated)
+  - `NotificationEmitted` → a downstream emitter logged/sent a notification
+
+- **Built‑in pipeline** (`registerEventPipeline`):
+  - On `BlockDetected`: parse block → publish `BlockParsed`
+  - On `BlockParsed`: compute activities, log block summary/OP_RETURN, publish `AddressActivityFound` for each activity
+  - On `AddressActivityFound`: log activity and publish `NotificationEmitted`
+  - On `NotificationEmitted`: placeholder for audits/metrics
+
+- **Backpressure/concurrency/retries**:
+  - Queue size: `MAX_EVENT_QUEUE_SIZE` (default: `2000`) – publishers wait when full
+  - Per‑subscription `concurrency` controls parallel handler executions
+  - Optional `retry` with backoff per subscription
+
+### Extending the pipeline
+
+Add new subscribers without touching core services. Example: send a webhook on every emitted notification.
+
+```ts
+import type { EventService } from "./src/app/services";
+
+export function registerWebhook(events: EventService) {
+  events.subscribe( {
+    event: "NotificationEmitted",
+    name: "webhook-sink",
+    concurrency: 4,
+    retry: { maxRetries: 3, backoffMs: (n) => 250 * n },
+    handler: async (ev) => {
+      await fetch( "https://example.com/hook", {
+        method: "POST",
+        headers: { "content-type": "app/json" },
+        body: JSON.stringify( ev ),
+      } );
+    },
+  } );
+}
+```
+
+## Operational notes
+
+- Production mode suppresses debug-level noisy logs (poll/summary/OP_RETURN) on stdout; `transaction.activity` stays at info.
+- File logs are always written and default to NDJSON. JSON array mode is available when needed.
+- For net/outgoing detection, enable `RESOLVE_INPUT_ADDRESSES=true`.
+
+## Quick start (recap)
+
+```bash
+cp .env.scripts .env || true
+echo "APP_ENV=development" >> .env
+echo "BTC_RPC_API_URL=http://localhost:8332" >> .env
+# Optional flags:
+# echo "PARSE_RAW_BLOCKS=true" >> .env
+# echo "RESOLVE_INPUT_ADDRESSES=true" >> .env
+
+bun run start
+```

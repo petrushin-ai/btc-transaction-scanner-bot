@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  btc-transaction-scanner-bot:
+    image: btc-transaction-scanner-bot:dev
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: btc-transaction-scanner-bot-dev
+    env_file:
+      - ./.env
+    environment:
+      - APP_ENV=development
+      - BTC_RPC_API_URL=${BTC_RPC_API_URL}
+      - BTC_POLL_INTERVAL_MS=${BTC_POLL_INTERVAL_MS}
+      - MAX_EVENT_QUEUE_SIZE=${MAX_EVENT_QUEUE_SIZE}
+      - RESOLVE_INPUT_ADDRESSES=${RESOLVE_INPUT_ADDRESSES}
+      - CUR_CACHE_VALIDITY_PERIOD=${CUR_CACHE_VALIDITY_PERIOD}
+      - API_KEY_COINMARKETCAP=${API_KEY_COINMARKETCAP}
+      - PARSE_RAW_BLOCKS=${PARSE_RAW_BLOCKS}
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    command: sh -c "bun install && bun --watch src/index.ts"
+    restart: unless-stopped
+

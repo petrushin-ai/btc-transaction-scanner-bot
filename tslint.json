@@ -1,0 +1,111 @@
+{
+  "defaultSeverity": "error",
+  "extends": [
+    "tslint:recommended"
+  ],
+  "linterOptions": {
+    "exclude": [
+      "node_modules/**",
+      "dist/**",
+      "logs/**",
+      "cache/**",
+      "coverage/**",
+      "**/*.d.ts"
+    ]
+  },
+  "jsRules": {},
+  "rules": {
+    "no-console": {
+      "severity": "warning",
+      "options": [
+        "debug",
+        "info",
+        "log",
+        "time",
+        "timeEnd",
+        "trace"
+      ]
+    },
+    "no-bitwise": false,
+    "max-line-length": {
+      "severity": "warning",
+      "options": [
+        100
+      ]
+    },
+    "quotemark": false,
+    "semicolon": [
+      true,
+      "always"
+    ],
+    "ordered-imports": [
+      true,
+      {
+        "import-sources-order": "case-insensitive",
+        "named-imports-order": "case-insensitive",
+        "grouped-imports": true,
+        "groups": [
+          {
+            "name": "external",
+            "match": "^(?:@[^/].*|[a-z0-9].*)",
+            "order": 1
+          },
+          {
+            "name": "internal",
+            "match": "^@/.*",
+            "order": 2
+          },
+          {
+            "name": "relative",
+            "match": "^\\.",
+            "order": 3
+          }
+        ]
+      }
+    ],
+    "typedef": false,
+    "no-any": false,
+    "no-shadowed-variable": false,
+    "prefer-const": false,
+    "no-empty": false,
+    "ban-types": false,
+    "array-type": false,
+    "no-string-literal": false,
+    "variable-name": [
+      true,
+      "check-format",
+      "allow-leading-underscore",
+      "ban-keywords"
+    ],
+    "object-literal-sort-keys": false,
+    "interface-name": false,
+    "indent": [
+      true,
+      "spaces",
+      2
+    ],
+    "await-promise": true,
+    "no-floating-promises": true,
+    "no-var-requires": true,
+    "no-require-imports": true,
+    "prefer-template": true,
+    "triple-equals": [
+      true,
+      "allow-null-check"
+    ],
+    "no-duplicate-imports": false,
+    "object-literal-shorthand": true,
+    "no-unnecessary-initializer": true,
+    "object-curly-spacing": [
+      true,
+      "always"
+    ],
+    "array-bracket-spacing": [
+      true,
+      "always"
+    ]
+  },
+  "rulesDirectory": [
+    "node_modules/tslint-eslint-rules/dist/rules"
+  ]
+}

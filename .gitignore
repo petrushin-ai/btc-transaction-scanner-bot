@@ -1,0 +1,13 @@
+.env
+.DS_Store
+bun.xml
+addresses.json
+
+
+.idea/
+.cursor/**
+
+node_modules/
+cache/
+logs/
+test/fixtures/

@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  btc-transaction-scanner-bot:
+    image: btc-transaction-scanner-bot:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: btc-transaction-scanner-bot
+    env_file:
+      - ./.env
+    environment:
+      # Allow overriding or setting explicitly in compose if needed
+      - APP_ENV=production
+      - BTC_RPC_API_URL=${BTC_RPC_API_URL}
+      - BTC_POLL_INTERVAL_MS=1000
+      - MAX_EVENT_QUEUE_SIZE=2000
+      - RESOLVE_INPUT_ADDRESSES=${RESOLVE_INPUT_ADDRESSES}
+      - CUR_CACHE_VALIDITY_PERIOD=3600
+      - API_KEY_COINMARKETCAP=${API_KEY_COINMARKETCAP}
+      - PARSE_RAW_BLOCKS=true
+    volumes:
+      - ./addresses.json:/app/addresses.json:ro
+      - ./cache:/app/cache
+      - ./logs:/app/logs
+    restart: unless-stopped
+

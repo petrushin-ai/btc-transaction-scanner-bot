@@ -1,0 +1,25 @@
+FROM oven/bun:1.1-alpine
+
+ENV NODE_ENV=production \
+    APP_ENV=production
+
+WORKDIR /app
+
+# Create non-root user matching runtime container
+RUN addgroup -g 10001 app \
+  && adduser -D -G app -u 10001 app \
+  && mkdir -p /app/cache /app/logs
+
+COPY package.json tsconfig.json bunfig.toml addresses.json ./
+RUN bun install
+
+COPY src ./src
+COPY test ./test
+
+RUN chown -R app:app /app
+USER app
+
+# Default to running test suite inside container
+CMD ["bun", "test"]
+
+
