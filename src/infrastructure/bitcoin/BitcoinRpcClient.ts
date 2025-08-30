@@ -27,6 +27,10 @@ export class BitcoinRpcClient {
   constructor(opts: BitcoinRpcClientOptions) {
     this.url = opts.url;
     this.timeoutMs = opts.timeoutMs ?? 10000;
+    if ( opts.username && opts.password ) {
+      const token = Buffer.from( `${ opts.username }:${ opts.password }`, "utf8" ).toString( "base64" );
+      this.authHeader = `Basic ${ token }`;
+    }
   }
 
   private async call<T>(method: string, params: unknown[] = []): Promise<T> {
@@ -41,7 +45,7 @@ export class BitcoinRpcClient {
     const json = await fetchJson<JsonRpcResponse<T>>( this.url, {
       method: HTTP_METHOD.POST,
       headers: {
-        "content-type": "app/json",
+        "content-type": "application/json",
         ...(this.authHeader ? { authorization: this.authHeader } : {}),
       },
       body,
@@ -65,7 +69,7 @@ export class BitcoinRpcClient {
     const json = await fetchJson<JsonRpcResponse<unknown>[]>( this.url, {
       method: HTTP_METHOD.POST,
       headers: {
-        "content-type": "app/json",
+        "content-type": "application/json",
         ...(this.authHeader ? { authorization: this.authHeader } : {}),
       },
       body: batch,

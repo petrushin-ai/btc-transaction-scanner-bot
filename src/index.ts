@@ -139,40 +139,40 @@ async function main() {
 
   // Backpressure-aware producer: waits when event backlog is high
   async function produceBlocks(): Promise<void> {
-    // If the queue is congested, allow consumers to catch up before awaiting the next block
-    // We check "BlockDetected" backlog since that's the head of the pipeline
-    await events.waitForCapacity( "BlockDetected" );
-    const block = await btc.awaitNewBlock( lastHeight );
-    // Detect reorg: if the prev block hash doesn't match our lastHash while height advanced by 1
-    if (
-      typeof lastHeight === "number"
-      && block.height === lastHeight + 1
-      && lastHash && block.prevHash
-      && block.prevHash !== lastHash
-    ) {
-      const reorgEv = {
-        type: "BlockReorg" as const,
+    for ( ;; ) {
+      // If the queue is congested, allow consumers to catch up before awaiting the next block
+      // We check "BlockDetected" backlog since that's the head of the pipeline
+      await events.waitForCapacity( "BlockDetected" );
+      const block = await btc.awaitNewBlock( lastHeight );
+      // Detect reorg: if the prev block hash doesn't match our lastHash while height advanced by 1
+      if (
+        typeof lastHeight === "number"
+        && block.height === lastHeight + 1
+        && lastHash && block.prevHash
+        && block.prevHash !== lastHash
+      ) {
+        const reorgEv = {
+          type: "BlockReorg" as const,
+          timestamp: new Date().toISOString(),
+          height: block.height - 1,
+          oldHash: lastHash,
+          newHash: block.prevHash,
+          eventId: `BlockReorg:${ block.height - 1 }:${ lastHash }->${ block.prevHash }`,
+          dedupeKey: `BlockReorg:${ block.height - 1 }:${ lastHash }:${ block.prevHash }`,
+        };
+        await events.publish( reorgEv as any );
+      }
+      lastHeight = block.height;
+      lastHash = block.hash;
+      await events.publish( {
+        type: "BlockDetected",
         timestamp: new Date().toISOString(),
-        height: block.height - 1,
-        oldHash: lastHash,
-        newHash: block.prevHash,
-        eventId: `BlockReorg:${ block.height - 1 }:${ lastHash }->${ block.prevHash }`,
-        dedupeKey: `BlockReorg:${ block.height - 1 }:${ lastHash }:${ block.prevHash }`,
-      };
-      await events.publish( reorgEv as any );
+        height: block.height,
+        hash: block.hash,
+        dedupeKey: `BlockDetected:${ block.height }:${ block.hash }`,
+        eventId: `BlockDetected:${ block.height }:${ block.hash }`,
+      } );
     }
-    lastHeight = block.height;
-    lastHash = block.hash;
-    await events.publish( {
-      type: "BlockDetected",
-      timestamp: new Date().toISOString(),
-      height: block.height,
-      hash: block.hash,
-      dedupeKey: `BlockDetected:${ block.height }:${ block.hash }`,
-      eventId: `BlockDetected:${ block.height }:${ block.hash }`,
-    } );
-    // Tail recurse to keep producing
-    return produceBlocks();
   }
 
   // Graceful shutdown

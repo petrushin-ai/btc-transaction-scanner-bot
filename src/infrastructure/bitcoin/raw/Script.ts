@@ -25,9 +25,30 @@ export function decodeScriptPubKey(script: Buffer, network: Network): DecodedScr
   const versions = getAddressVersionsForNetwork( network );
   // OP_RETURN pattern: 0x6a [pushdata]
   if ( script.length >= 1 && script[0] === OP.RETURN ) {
-    // Extract data payload if present
-    const payload = decodePushAt( script, 1 );
-    return { type: "nulldata", opReturnDataHex: payload?.toString( "hex" ) };
+    // Extract the first data payload that follows OP_RETURN; skip over non-push opcodes
+    let i = 1;
+    let payload: Buffer | undefined = undefined;
+    while ( i < script.length ) {
+      const opcode = script[i];
+      // Any of the push opcodes or small push lengths (<= 0x4b) indicate a pushdata sequence
+      if (
+        opcode <= 0x4b
+        || opcode === OP.PUSHDATA1
+        || opcode === OP.PUSHDATA2
+        || opcode === OP.PUSHDATA4
+      ) {
+        payload = decodePushAt( script, i );
+        break;
+      }
+      // Skip single-byte opcodes (including OP_0..OP_16) to locate the first pushdata
+      i += 1;
+    }
+    // Only classify as nulldata when there is a non-empty payload present
+    if ( payload && payload.length > 0 ) {
+      return { type: "nulldata", opReturnDataHex: payload.toString( "hex" ) };
+    }
+    // If no payload (or zero-length), treat as nonstandard for extraction purposes
+    return { type: "nonstandard" };
   }
   // P2PKH: OP_DUP OP_HASH160 0x14 <20-byte-hash> OP_EQUALVERIFY OP_CHECKSIG
   if (
