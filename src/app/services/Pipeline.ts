@@ -116,12 +116,15 @@ export function registerEventPipeline(
     concurrency: 4,
     retry: { maxRetries: 1, backoffMs: () => 0 },
     handler: async (ev) => {
-      logActivities( {
-        hash: ev.block.hash,
-        height: ev.block.height,
-        time: ev.block.time,
-        transactions: [],
-      }, [ ev.activity ] );
+      // Avoid duplicate "transaction.activity" lines: if any sink is enabled, sinks will log.
+      if ( sinks.length === 0 ) {
+        logActivities( {
+          hash: ev.block.hash,
+          height: ev.block.height,
+          time: ev.block.time,
+          transactions: [],
+        }, [ ev.activity ] );
+      }
       // Fan out to sinks concurrently with simple error handling
       await Promise.allSettled( sinks.map( (s) => s.send( ev ) ) );
       const nev: NotificationEmittedEvent = {
