@@ -14,9 +14,10 @@ export class StdoutSink implements NotificationSink {
   async send(event: AddressActivityFoundEvent): Promise<SinkResult> {
     try {
       const sign = event.activity.direction === "in" ? 1 : -1;
-      const diffBtc = sign * event.activity.valueBtc;
       const valueUsd = event.activity.valueUsd;
-      const diffUsd = typeof valueUsd === "number" ? sign * valueUsd : undefined;
+      const includeDiff = event.activity.hasBothSides === true;
+      const diffBtc = includeDiff ? (sign * event.activity.valueBtc) : undefined;
+      const diffUsd = includeDiff && typeof valueUsd === "number" ? sign * valueUsd : undefined;
       const payload = {
         type: "transaction.activity",
         address: event.activity.address,
@@ -37,8 +38,7 @@ export class StdoutSink implements NotificationSink {
           txid: payload.txid,
           valueBtc: payload.valueBtc,
           valueUsd: payload.valueUsd,
-          diffBtc: payload.diffBtc,
-          diffUsd: payload.diffUsd,
+          ...(includeDiff ? { diffBtc: payload.diffBtc, diffUsd: payload.diffUsd } : {}),
           direction: payload.direction,
           block: payload.block
         } );

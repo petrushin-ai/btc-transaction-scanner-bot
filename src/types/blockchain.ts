@@ -45,6 +45,8 @@ export type AddressActivity = {
   valueBtc: number;
   /** Optional precomputed USD equivalent for valueBtc */
   valueUsd?: number;
+  /** True when address appears in both inputs and outputs of the tx */
+  hasBothSides?: boolean;
   /** If the tx includes OP_RETURN outputs, echo best-effort data */
   opReturnHex?: string;
   opReturnUtf8?: string;

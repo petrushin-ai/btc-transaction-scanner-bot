@@ -279,6 +279,7 @@ export class BitcoinService implements BlockchainService {
               txid: tx.txid,
               direction: net >= 0 ? "in" : "out",
               valueBtc: Math.abs( net ),
+              hasBothSides: true,
             } );
             matchedAddressesThisTx.add( addr );
           }
