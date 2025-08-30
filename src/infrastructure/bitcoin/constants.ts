@@ -88,5 +88,6 @@ export const NULL_TXID_64 = "0".repeat( 64 );
 // Service defaults
 export const PREV_TX_CACHE_MAX_DEFAULT = 1000;
 export const POLL_INTERVAL_MS_DEFAULT = 1000;
+export const PREV_TX_LOOKUPS_PER_BLOCK_CAP_DEFAULT = 10;
 
 

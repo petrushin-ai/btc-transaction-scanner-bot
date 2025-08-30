@@ -7,7 +7,7 @@ import { BitcoinRpcClient, Raw } from "@/infrastructure/bitcoin";
 import {
   NULL_TXID_64,
   POLL_INTERVAL_MS_DEFAULT,
-  PREV_TX_CACHE_MAX_DEFAULT
+  PREV_TX_CACHE_MAX_DEFAULT,
 } from "@/infrastructure/bitcoin/constants";
 import { logger, type AppLogger } from "@/infrastructure/logger";
 import type {
@@ -154,7 +154,13 @@ export class BitcoinService implements BlockchainService {
   async parseBlockByHash(blockHash: string): Promise<ParsedBlock> {
     const flags = this.getFlags();
     if ( !flags.parseRawBlocks ) {
-      const block = (await this.rpc.getBlockByHashVerbose2( blockHash )) as any;
+      // Prefer verbosity=3 to get vin.prevout and avoid per-input getrawtransaction calls
+      let block: any;
+      try {
+        block = await (this.rpc as any).getBlockByHashVerbose3( blockHash );
+      } catch {
+        block = await this.rpc.getBlockByHashVerbose2( blockHash );
+      }
       return {
         hash: block.hash,
         prevHash: block.previousblockhash,
@@ -186,38 +192,18 @@ export class BitcoinService implements BlockchainService {
         }) ),
       }) ),
     };
-    // resolve inputs if configured
-    if ( flags.resolveInputAddresses ) {
-      // Collect unique prevTxIds across this block
-      const needSet = new Set<string>();
-      for ( const rtx of rawParsed.transactions ) {
-        for ( const vin of rtx.inputs ) {
-          const id = vin.prevTxId;
-          if ( !id || id === NULL_TXID_64 ) continue;
-          needSet.add( id );
-        }
-      }
-      const prevMap = await this.getPrevTransactions( Array.from( needSet ) );
-      for ( const tx of parsed.transactions ) {
-        const rawTx = rawParsed.transactions.find( (x) => x.txid === tx.txid )!;
-        const inputs: { address?: string; valueBtc?: number }[] = [];
-        for ( const vin of rawTx.inputs ) {
-          if ( vin.prevTxId === "" || vin.prevTxId === "0".repeat( 64 ) ) {
-            inputs.push( {} );
-            continue;
-          }
-          const prev = prevMap.get( vin.prevTxId ) as any | undefined;
-          const prevOut = prev?.vout?.[vin.prevVout];
-          const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-          const addr: string | undefined = Array.isArray( addresses )
-            ? addresses[0]
-            : prevOut?.scriptPubKey?.address;
-          inputs.push( { address: addr, valueBtc: prevOut ? Number( prevOut.value ) : undefined } );
-        }
-        (tx as any).inputs = inputs;
-      }
-    }
+    // Do not resolve inputs in raw path to avoid additional RPCs; inputs remain empty.
     return parsed;
+  }
+
+  /**
+   * Lightweight parse: fetch the tip block header/hash and transactions via the chosen path once.
+   * Useful for startup scanning without entering the await loop.
+   */
+  async parseLatestBlockOnce(): Promise<ParsedBlock> {
+    const height = await this.rpc.getBlockCount();
+    const hash = await this.rpc.getBlockHash( height );
+    return this.parseBlockByHash( hash );
   }
 
   checkTransactions(block: ParsedBlock, watched: WatchedAddress[]): AddressActivity[] {
@@ -350,17 +336,13 @@ export class BitcoinService implements BlockchainService {
 
   private async parseTransactions(rawTxs: any[]): Promise<ParsedTransaction[]> {
     const parsed: ParsedTransaction[] = [];
-    let prevMap: Map<string, any> | undefined;
+    let prevMap: Map<string, any> | undefined; // intentionally unused; no prev-tx RPCs
     const flags = this.getFlags();
-    if ( flags.resolveInputAddresses ) {
-      const need = new Set<string>();
-      for ( const tx of rawTxs ) {
-        for ( const vin of (tx.vin as any[]) ) {
-          if ( vin && !vin.coinbase && typeof vin.txid === "string" ) need.add( vin.txid );
-        }
-      }
-      prevMap = await this.getPrevTransactions( Array.from( need ) );
-    }
+    // Only resolve inputs when prevout is inline (verbosity=3). No getrawtransaction fallback.
+    const hasPrevoutInline = Array.isArray(
+      rawTxs
+    ) && rawTxs
+      .some( (t: any) => Array.isArray( t.vin ) && t.vin.some( (v: any) => v && v.prevout ) );
     for ( const tx of rawTxs ) {
       const outputs = (tx.vout as any[]).map( (vout) => {
         const spk = vout.scriptPubKey || {};
@@ -402,17 +384,17 @@ export class BitcoinService implements BlockchainService {
             inputs.push( {} );
             continue;
           }
-          if ( vin.txid === undefined || vin.vout === undefined ) {
-            inputs.push( {} );
+          // Prefer inline prevout (verbosity=3)
+          const prevOutInline = (vin as any).prevout;
+          if ( prevOutInline ) {
+            const spk = prevOutInline.scriptPubKey || {};
+            const addresses: string[] | undefined = spk.addresses;
+            const addr: string | undefined = Array.isArray( addresses ) ? addresses[0] : spk.address;
+            inputs.push( { address: addr, valueBtc: Number( prevOutInline.value ) } );
             continue;
           }
-          const prev = prevMap?.get( vin.txid ) as any | undefined;
-          const prevOut = prev?.vout?.[vin.vout];
-          const addresses: string[] | undefined = prevOut?.scriptPubKey?.addresses;
-          const addr: string | undefined = Array.isArray( addresses )
-            ? addresses[0]
-            : prevOut?.scriptPubKey?.address;
-          inputs.push( { address: addr, valueBtc: prevOut ? Number( prevOut.value ) : undefined } );
+          // No prevout available; skip input resolution to avoid extra RPCs
+          inputs.push( {} );
         }
       }
 

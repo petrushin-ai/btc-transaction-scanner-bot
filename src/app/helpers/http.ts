@@ -11,11 +11,15 @@ export const HTTP_METHOD = {
 export type RequestHeaders = Record<string, string>;
 
 export const JSON_HEADERS: RequestHeaders = {
-  "Accept": "app/json",
+  "Accept": "application/json",
 };
-
-// Keep-Alive via undici per-origin pools
+// Keep-Alive via undici per-origin pools (external)
+// Internal logger
 import { fetch as undiciFetch, Pool } from "undici";
+
+import { logger } from "@/infrastructure/logger";
+
+const httpLog = logger( "http" );
 
 type KeepAliveConfig = {
   defaultConnections: number;
@@ -102,15 +106,51 @@ export async function fetchJson<T = unknown>(url: string, opts: FetchJsonOptions
 
   // Serializing body if provided and not already a string
   let body: string | undefined = undefined;
+  let rpcSummary:
+    | { kind: "rpc"; batch: boolean; methods: Array<{ name: string; count: number }> }
+    | undefined;
   if ( opts.body !== undefined ) {
     if ( typeof opts.body === "string" ) body = opts.body;
     else {
-      headers["content-type"] = headers["content-type"] || "app/json";
+      headers["content-type"] = headers["content-type"] || "application/json";
+      // Best-effort summarize JSON-RPC request for logging
+      try {
+        const obj: any = opts.body as any;
+        if ( Array.isArray( obj ) ) {
+          const counts = new Map<string, number>();
+          for ( const it of obj ) {
+            const m = typeof it?.method === "string" ? it.method : "unknown";
+            counts.set( m, (counts.get( m ) || 0) + 1 );
+          }
+          rpcSummary = {
+            kind: "rpc",
+            batch: true,
+            methods: Array.from( counts ).map( ([ name, count ]) => ({ name, count }) ),
+          };
+        } else if ( obj && typeof obj === "object" && typeof obj.method === "string" ) {
+          rpcSummary = {
+            kind: "rpc",
+            batch: false,
+            methods: [ { name: String( obj.method ), count: 1 } ],
+          };
+        }
+      } catch {
+        // ignore summarization errors
+      }
       body = JSON.stringify( opts.body );
     }
   }
 
   try {
+    // Request log
+    httpLog.debug( {
+      type: "http.request",
+      url,
+      method,
+      timeoutMs,
+      rpc: rpcSummary,
+      hasBody: !!body,
+    } );
     const res = await undiciFetch( url, {
       method,
       headers,
@@ -121,6 +161,19 @@ export async function fetchJson<T = unknown>(url: string, opts: FetchJsonOptions
     } as any );
     if ( !res.ok ) {
       const text = await res.text().catch( () => "" );
+      // Mark last429 timestamp globally for callers that may want to backoff
+      if ( res.status === 429 ) {
+        // best-effort global mark; specific services can keep local state too
+        (globalThis as any).__last429AtMs = Date.now();
+      }
+      httpLog.warn( {
+        type: "http.response_error",
+        url,
+        method,
+        status: res.status,
+        statusText: res.statusText,
+        rpc: rpcSummary,
+      } );
       throw new Error(
         `${ method } ${ url } failed: ${ res.status } ${ res.statusText } ${ text }`.trim()
       );
@@ -128,10 +181,25 @@ export async function fetchJson<T = unknown>(url: string, opts: FetchJsonOptions
     // Try JSON parse, fall back to text if empty
     const contentType = res.headers.get( "content-type" ) || "";
     if ( contentType.includes( "app/json" ) ) {
-      return (await res.json()) as T;
+      const json = (await res.json()) as T;
+      httpLog.debug( {
+        type: "http.response_ok",
+        url,
+        method,
+        status: res.status,
+        rpc: rpcSummary,
+      } );
+      return json;
     }
     // For JSON-RPC we always expect JSON, but handle gracefully
     const text = await res.text();
+    httpLog.debug( {
+      type: "http.response_text",
+      url,
+      method,
+      status: res.status,
+      rpc: rpcSummary,
+    } );
     return (text ? (JSON.parse( text ) as T) : (undefined as unknown as T));
   } finally {
     clearTimeout( timeoutId );

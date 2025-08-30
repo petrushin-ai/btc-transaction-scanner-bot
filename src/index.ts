@@ -70,6 +70,24 @@ async function main() {
 
   // Register event pipeline (subscriptions & handlers)
   const liveWatchRef = registerEventPipeline( events, { btc, currency }, cfg );
+  // Optional: perform one-time tip scan at startup in background (non-blocking)
+  if ( cfg.startupScanTip ) {
+    void (async () => {
+      try {
+        const tip = await btc.parseLatestBlockOnce();
+        await events.publish( {
+          type: "BlockParsed",
+          timestamp: new Date().toISOString(),
+          block: tip,
+          dedupeKey: `BlockParsed:${ tip.height }:${ tip.hash }:startup`,
+          eventId: `BlockParsed:${ tip.height }:${ tip.hash }:startup`,
+        } as any );
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String( err );
+        logger.warn( { type: "startup.scan_tip_failed", message } );
+      }
+    })();
+  }
 
   // Hot-reload watch list with debounce and atomic in-memory swap
   // Works when a watch file path is provided and exists

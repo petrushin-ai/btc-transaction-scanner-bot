@@ -19,6 +19,8 @@ export type AppConfig = {
   watch: { address: string; label?: string }[];
   // path to a watchlist file (if available)
   watchAddressesFile?: string;
+  // startup behavior
+  startupScanTip: boolean;
   // logger
   environment: string;
   serviceName: string;
@@ -61,6 +63,7 @@ export function loadConfig(): AppConfig {
       pollIntervalMs: 1000,
       resolveInputAddresses: false,
       parseRawBlocks: false,
+      startupScanTip: false,
       network: ((process.env.BTC_NETWORK || "regtest") as any),
       maxEventQueueSize: 100,
       worker: { id: "worker-1", members: [ "worker-1" ] },
@@ -93,6 +96,7 @@ export function loadConfig(): AppConfig {
     COINMARKETCAP_BASE_URL: z.string().optional(),
     RESOLVE_INPUT_ADDRESSES: z.coerce.boolean().optional().default( false ),
     PARSE_RAW_BLOCKS: z.coerce.boolean().optional().default( false ),
+    STARTUP_SCAN_TIP: z.coerce.boolean().optional().default( false ),
     WATCH_ADDRESSES_FILE: z.string().optional(),
     WATCH_ADDRESSES: z.string().optional(),
     // Workers
@@ -149,6 +153,7 @@ export function loadConfig(): AppConfig {
   const maxEventQueueSize = Number( env.MAX_EVENT_QUEUE_SIZE );
   const resolveInputAddresses = Boolean( env.RESOLVE_INPUT_ADDRESSES );
   const parseRawBlocks = Boolean( env.PARSE_RAW_BLOCKS );
+  const startupScanTip = Boolean( env.STARTUP_SCAN_TIP );
   const environment = (
     env.APP_ENV || env.NODE_ENV || "development"
   ).toString().trim();
@@ -230,6 +235,7 @@ export function loadConfig(): AppConfig {
     worker: { id: workerId, members: workerMembers },
     watch,
     watchAddressesFile: addressesFile,
+    startupScanTip,
     environment,
     serviceName,
     logLevel,

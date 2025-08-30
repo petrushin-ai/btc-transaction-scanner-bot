@@ -42,19 +42,27 @@ export class BitcoinRpcClient {
     };
     // Inline import to avoid top-level cycle concerns
     const { fetchJson, HTTP_METHOD } = await import("@/app/helpers/http");
-    const json = await fetchJson<JsonRpcResponse<T>>( this.url, {
-      method: HTTP_METHOD.POST,
-      headers: {
-        "content-type": "application/json",
-        ...(this.authHeader ? { authorization: this.authHeader } : {}),
-      },
-      body,
-      timeoutMs: this.timeoutMs,
-    } );
-    if ( json.error ) {
-      throw new Error( `RPC ${ method } error ${ json.error.code }: ${ json.error.message }` );
+    try {
+      const json = await fetchJson<JsonRpcResponse<T>>( this.url, {
+        method: HTTP_METHOD.POST,
+        headers: {
+          "content-type": "application/json",
+          ...(this.authHeader ? { authorization: this.authHeader } : {}),
+        },
+        body,
+        timeoutMs: this.timeoutMs,
+      } );
+      if ( json.error ) {
+        throw new Error( `RPC ${ method } error ${ json.error.code }: ${ json.error.message }` );
+      }
+      return json.result;
+    } catch (e: any) {
+      // Simple 429 detection so callers can backoff
+      if ( typeof e?.message === "string" && e.message.includes(" 429 ") ) {
+        (e as any).rateLimited = true;
+      }
+      throw e;
     }
-    return json.result;
   }
 
   private async callBatch(requests: { method: string; params?: unknown[] }[]): Promise<any[]> {
@@ -66,26 +74,33 @@ export class BitcoinRpcClient {
       params: r.params || [],
     }) );
     const { fetchJson, HTTP_METHOD } = await import("@/app/helpers/http");
-    const json = await fetchJson<JsonRpcResponse<unknown>[]>( this.url, {
-      method: HTTP_METHOD.POST,
-      headers: {
-        "content-type": "application/json",
-        ...(this.authHeader ? { authorization: this.authHeader } : {}),
-      },
-      body: batch,
-      timeoutMs: this.timeoutMs,
-    } );
-    // Map responses by id since servers may reorder
-    const byId = new Map<number, JsonRpcResponse<unknown>>();
-    for ( const res of json ) byId.set( res.id, res );
-    const results: any[] = [];
-    for ( const req of batch ) {
-      const res = byId.get( req.id );
-      if ( !res ) throw new Error( `RPC batch missing response for id ${ req.id }` );
-      if ( res.error ) throw new Error( `RPC ${ req.method } error ${ res.error.code }: ${ res.error.message }` );
-      results.push( res.result );
+    try {
+      const json = await fetchJson<JsonRpcResponse<unknown>[]>( this.url, {
+        method: HTTP_METHOD.POST,
+        headers: {
+          "content-type": "application/json",
+          ...(this.authHeader ? { authorization: this.authHeader } : {}),
+        },
+        body: batch,
+        timeoutMs: this.timeoutMs,
+      } );
+      // Map responses by id since servers may reorder
+      const byId = new Map<number, JsonRpcResponse<unknown>>();
+      for ( const res of json ) byId.set( res.id, res );
+      const results: any[] = [];
+      for ( const req of batch ) {
+        const res = byId.get( req.id );
+        if ( !res ) throw new Error( `RPC batch missing response for id ${ req.id }` );
+        if ( res.error ) throw new Error( `RPC ${ req.method } error ${ res.error.code }: ${ res.error.message }` );
+        results.push( res.result );
+      }
+      return results;
+    } catch (e: any) {
+      if ( typeof e?.message === "string" && e.message.includes(" 429 ") ) {
+        (e as any).rateLimited = true;
+      }
+      throw e;
     }
-    return results;
   }
 
   getBlockchainInfo(): Promise<{ chain: string; blocks: number }> {
@@ -104,6 +119,11 @@ export class BitcoinRpcClient {
   // unless txindex is enabled for inputs
   getBlockByHashVerbose2(blockHash: string): Promise<unknown> {
     return this.call( "getblock", [ blockHash, 2 ] );
+  }
+
+  // verbosity = 3 returns transactions with prevout objects in vin when available
+  getBlockByHashVerbose3(blockHash: string): Promise<unknown> {
+    return this.call( "getblock", [ blockHash, 3 ] );
   }
 
   // verbosity = 0 returns the raw serialized block as hex string
